@@ -16,5 +16,6 @@ export const getConfig = () => api.get('/config');
 export const saveConfig = (config: any) => api.post('/config', config);
 export const getJiraFields = () => api.get('/jira/fields');
 export const getJiraStatuses = () => api.get('/jira/statuses');
+export const getTeamMetrics = () => api.get('/metrics/team');
 
 export default api;

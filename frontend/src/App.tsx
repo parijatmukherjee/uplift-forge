@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import Sidebar from './components/Sidebar';
 import HomePage from './pages/HomePage';
 import EngineeringAttribution from './pages/EngineeringAttribution';
+import TeamMetrics from './pages/TeamMetrics';
 import ConfigPanel from './components/ConfigPanel';
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
       <main className="flex-1 overflow-hidden">
         {activeTab === 'home' && <HomePage />}
         {activeTab === 'attribution' && <EngineeringAttribution refreshKey={refreshKey} />}
+        {activeTab === 'metrics' && <TeamMetrics refreshKey={refreshKey} />}
         {activeTab === 'config' && <ConfigPanel onConfigSaved={handleConfigSaved} />}
       </main>
     </div>

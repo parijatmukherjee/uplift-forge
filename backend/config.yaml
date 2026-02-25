@@ -7,6 +7,7 @@ jira:
   email: your-email@omio.com
   field_ids:
     eng_hours: customfield_18466
+    story_points: ''
     tpd_bu: customfield_17924
     work_stream: customfield_18837
   project_key: ACTIN

@@ -212,6 +212,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ onConfigSaved }) => {
                     { key: 'tpd_bu', label: 'TPD Business Unit Field' },
                     { key: 'eng_hours', label: 'Engineering Hours Field' },
                     { key: 'work_stream', label: 'Work Stream Field' },
+                    { key: 'story_points', label: 'Story Points Field' },
                   ].map(({ key, label }) => (
                     <div key={key}>
                       <label className="block text-xs font-medium text-slate-400 mb-1">{label}</label>
