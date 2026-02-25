@@ -1,15 +1,17 @@
 # JIRA Field Updater Service
 
-A web application that automates JIRA ticket field management for the ACTIN team. It calculates engineering hours from status transitions, maps TPD Business Units and Work Streams from parent issues, and provides inline editing with push-back to JIRA.
+A web application that automates JIRA ticket field management for the ACTIN team. It calculates engineering hours from status transitions, maps TPD Business Units and Work Streams using a flexible rule engine, and provides inline editing with push-back to JIRA.
 
 ## Features
 
-- **Engineering Hours:** Auto-calculated from configurable status transitions (e.g. In Progress -> Code Review), respecting office hours and weekends.
-- **TPD Business Unit & Work Stream:** Auto-assigned based on parent issue (epic) mappings.
+- **Engineering Hours:** Auto-calculated from configurable status transitions (e.g. In Progress -> Code Review), respecting office hours, weekends, and excluded statuses (e.g. Blocked).
+- **Rule-Based Field Mapping:** TPD Business Unit and Work Stream are auto-assigned using a visual rule builder with AND/OR logic across multiple fields (parent key, labels, components, summary, issue type, priority, assignee).
+- **Ticket Filters:** Three modes — All Tickets, Last X Months (resolved date), Missing Required Fields.
 - **Per-field Recalculate:** Recompute any field on demand with a single click.
 - **Inline Editing:** Edit fields directly in the dashboard table and save back to JIRA.
-- **Dynamic Configuration:** Configure project key, custom field IDs, statuses, and mappings from the UI — with on-demand field fetching from JIRA.
+- **Dynamic Configuration:** Configure project key, custom field IDs, statuses, mapping rules, and filters from the UI — with on-demand field fetching from JIRA.
 - **Bulk & Single Sync:** Full project sync or per-ticket refresh from JIRA.
+- **Scheduled Sync:** APScheduler runs bulk sync at a configurable interval.
 
 ## Quick Start
 
@@ -36,8 +38,9 @@ make docker-up
 3. Click **Fetch Fields** to load available custom fields and statuses.
 4. Map the three field IDs: TPD Business Unit, Engineering Hours, Work Stream.
 5. Set the **Start Status** and **End Status** for engineering hours calculation.
-6. Configure TPD BU and Work Stream parent key mappings.
-7. **Save** and click **Sync Now**.
+6. Configure **Ticket Filter** (All, Last X Months, or Missing Fields).
+7. Add **TPD Business Unit** and **Work Stream** mapping rules using the visual rule builder.
+8. **Save** and click **Sync Now**.
 
 ## Running locally (development)
 
@@ -65,7 +68,7 @@ make run-frontend  # Vite dev server on :5173
 | `make run-frontend` | Start Vite dev server locally |
 | `make docker-up` | Build and start both services with Docker Compose |
 | `make docker-down` | Stop Docker services |
-| `make test` | Run backend unit tests |
+| `make test` | Run all backend tests |
 
 ## Tech Stack
 

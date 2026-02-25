@@ -19,4 +19,4 @@ docker-down:
 	docker-compose down
 
 test:
-	cd backend && ./venv/bin/pytest test_field_engine.py
+	cd backend && ./.venv/bin/pytest test_field_engine.py test_integration.py -v
