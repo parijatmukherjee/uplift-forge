@@ -27,6 +27,12 @@ A standalone Electron desktop app for engineering team performance. Connect via 
 - **Engineering Attribution** — Automated mapping rules (TPD BU, Work Streams) and Work Cycle definition (start/end/excluded statuses).
 - **Application Settings** — Manual update checks and version information.
 
+### Privacy & Security (GDPR Compliant)
+- **Local-First Architecture:** All data, including JIRA metadata and credentials, is processed and stored strictly on your local machine. No tracking, no external databases, and no telemetry data sent to the developer.
+- **Secure Credential Storage:** API tokens are encrypted at rest using your OS's native Keychain/Credential Manager.
+- **Explicit Consent:** Users must agree to the Privacy Policy and Terms of Service upon their first login, fulfilling GDPR consent requirements.
+
+
 ## Quick Start
 
 ### 1. Install
