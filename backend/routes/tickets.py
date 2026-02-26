@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict
+from datetime import datetime, date, timedelta
 from fastapi import APIRouter, HTTPException
 from jira_client import jira_client
 from field_engine import calculate_engineering_hours, get_mapped_fields
@@ -206,7 +207,11 @@ def sync_tickets():
     logger.info(f"Starting sync for project: {config.project_key}")
     try:
         tf = config.ticket_filter
-        months = tf.get("months") if tf.get("mode") == "last_x_months" else None
+        months = tf.get("months", 6)
+        # Cap at 12 months max; treat legacy "all" mode as 12 months
+        if tf.get("mode") == "all" or months is None:
+            months = 12
+        months = min(int(months), 12)
         issues = jira_client.get_issues(config.project_key, months=months)
         logger.info(f"Fetched {len(issues)} issues from JIRA.")
 
@@ -224,36 +229,50 @@ def sync_tickets():
         return 0
 
 
-@router.get("/metrics/team")
-async def get_team_metrics():
-    """Compute team-level KPIs from the ticket cache."""
-    tickets = [t for t in ticket_cache.values() if t.get("status") in FINAL_STATUSES]
+BUG_TYPES = {"bug", "defect"}
 
+PERIOD_DAYS = {
+    "weekly": 7,
+    "bi-weekly": 14,
+    "monthly": 30,
+}
+
+
+def _parse_resolved(t):
+    """Return a date object from the resolved field, or None."""
+    r = t.get("resolved")
+    if not r:
+        return None
+    try:
+        return datetime.fromisoformat(r.replace("Z", "+00:00")).date()
+    except Exception:
+        return None
+
+
+def _compute_metrics(tickets):
+    """Compute KPIs from a list of tickets. Returns summary dict + breakdowns."""
     if not tickets:
-        return {"summary": {}, "by_business_unit": {}, "by_work_stream": {}, "monthly_trend": [], "issue_type_breakdown": {}}
+        empty = {"total_tickets": 0, "total_story_points": 0, "total_eng_hours": 0,
+                 "estimation_accuracy": None, "avg_eng_hours_per_sp": None,
+                 "avg_cycle_time_hours": None, "bug_count": 0, "bug_ratio": 0, "bug_eng_hours_pct": 0}
+        return empty, {}, {}, {}
 
     total_tickets = len(tickets)
     total_sp = sum(t.get("story_points") or 0 for t in tickets)
     total_eng_hours = sum(t.get("eng_hours") or 0 for t in tickets)
 
-    # Tickets that have both SP and eng_hours for accuracy calc
     paired = [t for t in tickets if t.get("story_points") and t.get("eng_hours")]
     paired_sp = sum(t["story_points"] for t in paired)
     paired_hours = sum(t["eng_hours"] for t in paired)
+    hours_per_sp = config.sp_to_days * 8  # sp_to_days man-days * 8 hours/day
+    estimation_accuracy = round((paired_sp * hours_per_sp) / paired_hours, 2) if paired_hours > 0 else None
 
-    # Estimation accuracy: (SP * 8) / eng_hours — 1.0 means perfect
-    estimation_accuracy = round((paired_sp * 8) / paired_hours, 2) if paired_hours > 0 else None
-
-    # Avg eng hours per story point
     avg_hours_per_sp = round(total_eng_hours / total_sp, 1) if total_sp > 0 else None
 
-    # Avg cycle time (avg eng_hours across tickets that have eng_hours)
     tickets_with_hours = [t for t in tickets if t.get("eng_hours")]
     avg_cycle_time = round(sum(t["eng_hours"] for t in tickets_with_hours) / len(tickets_with_hours), 1) if tickets_with_hours else None
 
-    # Bug metrics
-    bug_types = {"bug", "defect"}
-    bugs = [t for t in tickets if (t.get("issue_type") or "").lower() in bug_types]
+    bugs = [t for t in tickets if (t.get("issue_type") or "").lower() in BUG_TYPES]
     bug_count = len(bugs)
     bug_eng_hours = sum(t.get("eng_hours") or 0 for t in bugs)
 
@@ -269,17 +288,14 @@ async def get_team_metrics():
         "bug_eng_hours_pct": round(bug_eng_hours / total_eng_hours * 100, 1) if total_eng_hours > 0 else 0,
     }
 
-    # Group by business unit
     by_bu = defaultdict(lambda: {"tickets": 0, "story_points": 0, "eng_hours": 0})
     for t in tickets:
         bu = t.get("tpd_bu") or "Unassigned"
         by_bu[bu]["tickets"] += 1
         by_bu[bu]["story_points"] += t.get("story_points") or 0
         by_bu[bu]["eng_hours"] += t.get("eng_hours") or 0
-    # Round values
     by_bu = {k: {"tickets": v["tickets"], "story_points": round(v["story_points"], 1), "eng_hours": round(v["eng_hours"], 1)} for k, v in by_bu.items()}
 
-    # Group by work stream
     by_ws = defaultdict(lambda: {"tickets": 0, "story_points": 0, "eng_hours": 0})
     for t in tickets:
         ws = t.get("work_stream") or "Unassigned"
@@ -288,25 +304,6 @@ async def get_team_metrics():
         by_ws[ws]["eng_hours"] += t.get("eng_hours") or 0
     by_ws = {k: {"tickets": v["tickets"], "story_points": round(v["story_points"], 1), "eng_hours": round(v["eng_hours"], 1)} for k, v in by_ws.items()}
 
-    # Monthly trend (by resolved date)
-    monthly = defaultdict(lambda: {"tickets": 0, "story_points": 0, "eng_hours": 0, "bug_count": 0})
-    for t in tickets:
-        resolved = t.get("resolved")
-        if not resolved:
-            continue
-        month_key = resolved[:7]  # "YYYY-MM"
-        monthly[month_key]["tickets"] += 1
-        monthly[month_key]["story_points"] += t.get("story_points") or 0
-        monthly[month_key]["eng_hours"] += t.get("eng_hours") or 0
-        if (t.get("issue_type") or "").lower() in bug_types:
-            monthly[month_key]["bug_count"] += 1
-
-    monthly_trend = [
-        {"month": k, "tickets": v["tickets"], "story_points": round(v["story_points"], 1), "eng_hours": round(v["eng_hours"], 1), "bug_count": v["bug_count"]}
-        for k, v in sorted(monthly.items())
-    ]
-
-    # Issue type breakdown
     by_type = defaultdict(lambda: {"tickets": 0, "story_points": 0, "eng_hours": 0})
     for t in tickets:
         it = t.get("issue_type") or "Unknown"
@@ -315,10 +312,66 @@ async def get_team_metrics():
         by_type[it]["eng_hours"] += t.get("eng_hours") or 0
     by_type = {k: {"tickets": v["tickets"], "story_points": round(v["story_points"], 1), "eng_hours": round(v["eng_hours"], 1)} for k, v in by_type.items()}
 
+    return summary, dict(by_bu), dict(by_ws), dict(by_type)
+
+
+@router.get("/metrics/team")
+async def get_team_metrics(period: str = "all"):
+    """Compute team-level KPIs from the ticket cache.
+
+    period: "all", "weekly", "bi-weekly", "monthly"
+    Returns current period metrics + previous period metrics for trend comparison.
+    """
+    all_tickets = [t for t in ticket_cache.values() if t.get("status") in FINAL_STATUSES]
+
+    if not all_tickets:
+        return {"summary": {}, "prev_summary": {}, "by_business_unit": {}, "by_work_stream": {},
+                "monthly_trend": [], "issue_type_breakdown": {}, "period": period}
+
+    today = date.today()
+    days = PERIOD_DAYS.get(period)
+
+    if days:
+        cutoff_current = today - timedelta(days=days)
+        cutoff_prev = cutoff_current - timedelta(days=days)
+        current_tickets = [t for t in all_tickets if (_parse_resolved(t) or date.min) >= cutoff_current]
+        prev_tickets = [t for t in all_tickets if cutoff_prev <= (_parse_resolved(t) or date.min) < cutoff_current]
+    else:
+        # "all" — no time filter, no previous period
+        current_tickets = all_tickets
+        prev_tickets = []
+
+    summary, by_bu, by_ws, by_type = _compute_metrics(current_tickets)
+    prev_summary, prev_by_bu, prev_by_ws, prev_by_type = _compute_metrics(prev_tickets)
+
+    # Monthly trend (always computed from all tickets for the line chart)
+    monthly = defaultdict(lambda: {"tickets": 0, "story_points": 0, "eng_hours": 0, "bug_count": 0})
+    for t in all_tickets:
+        resolved = t.get("resolved")
+        if not resolved:
+            continue
+        month_key = resolved[:7]
+        monthly[month_key]["tickets"] += 1
+        monthly[month_key]["story_points"] += t.get("story_points") or 0
+        monthly[month_key]["eng_hours"] += t.get("eng_hours") or 0
+        if (t.get("issue_type") or "").lower() in BUG_TYPES:
+            monthly[month_key]["bug_count"] += 1
+
+    monthly_trend = [
+        {"month": k, "tickets": v["tickets"], "story_points": round(v["story_points"], 1),
+         "eng_hours": round(v["eng_hours"], 1), "bug_count": v["bug_count"]}
+        for k, v in sorted(monthly.items())
+    ]
+
     return {
         "summary": summary,
-        "by_business_unit": dict(by_bu),
-        "by_work_stream": dict(by_ws),
+        "prev_summary": prev_summary,
+        "by_business_unit": by_bu,
+        "prev_by_business_unit": prev_by_bu,
+        "by_work_stream": by_ws,
+        "prev_by_work_stream": prev_by_ws,
         "monthly_trend": monthly_trend,
-        "issue_type_breakdown": dict(by_type),
+        "issue_type_breakdown": by_type,
+        "prev_issue_type_breakdown": prev_by_type,
+        "period": period,
     }

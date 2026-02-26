@@ -28,7 +28,10 @@ class Config:
         self.eng_excluded_statuses = self.data.get("engineering_hours_excluded_statuses", ["Blocked"])
 
         # Ticket filter
-        self.ticket_filter = self.data.get("ticket_filter", {"mode": "all", "months": 3})
+        self.ticket_filter = self.data.get("ticket_filter", {"mode": "last_x_months", "months": 6})
+
+        # Story point calibration: how many man-days = 1 SP (default 1)
+        self.sp_to_days = self.data.get("sp_to_days", 1)
 
         # JIRA Custom Field IDs
         self.field_ids = self.data["jira"].get("field_ids", {
@@ -63,7 +66,7 @@ class Config:
 
     def update_config(self, project_key=None, field_ids=None, eng_start=None,
                       eng_end=None, eng_excluded_statuses=None, ticket_filter=None,
-                      mapping_rules=None, **_ignored):
+                      mapping_rules=None, sp_to_days=None, **_ignored):
         if project_key:
             self.project_key = project_key
             self.data["jira"]["project_key"] = project_key
@@ -94,6 +97,10 @@ class Config:
             # Remove old format keys if present
             self.data.pop("tpd_business_unit_mapping", None)
             self.data.pop("work_stream_mapping", None)
+
+        if sp_to_days is not None:
+            self.sp_to_days = float(sp_to_days)
+            self.data["sp_to_days"] = self.sp_to_days
 
         # Save to file
         with open(self.config_path, "w") as f:

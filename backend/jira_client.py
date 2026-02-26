@@ -69,4 +69,8 @@ class JiraClient:
         """Fetch all workflow statuses from the JIRA instance."""
         return self.jira.get_all_statuses()
 
+    def get_project(self, project_key: str):
+        """Fetch project details (name, lead, avatar, etc.)."""
+        return self.jira.project(project_key)
+
 jira_client = JiraClient()
