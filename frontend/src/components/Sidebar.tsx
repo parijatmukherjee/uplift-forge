@@ -1,5 +1,6 @@
 import React from 'react';
-import { Settings, BarChart3, Flame, Home } from 'lucide-react';
+import { Settings, BarChart3, Flame, Home, TrendingUp } from 'lucide-react';
+import type { ProjectInfo } from '../App';
 
 export interface Tab {
   id: string;
@@ -9,24 +10,37 @@ export interface Tab {
 
 export const TABS: Tab[] = [
   { id: 'home', label: 'Home', icon: <Home size={18} /> },
-  { id: 'attribution', label: 'Attribution', icon: <BarChart3 size={18} /> },
+  { id: 'attribution', label: 'Eng. Attribution', icon: <BarChart3 size={18} /> },
+  { id: 'metrics', label: 'Team Metrics', icon: <TrendingUp size={18} /> },
   { id: 'config', label: 'Configuration', icon: <Settings size={18} /> },
 ];
 
 interface SidebarProps {
   activeTab: string;
   onTabChange: (tabId: string) => void;
+  project?: ProjectInfo | null;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, project }) => {
   return (
-    <aside className="w-48 bg-slate-900 border-r border-slate-700/50 flex flex-col flex-shrink-0">
-      {/* Logo */}
+    <aside className="w-56 bg-slate-900 border-r border-slate-700/50 flex flex-col flex-shrink-0">
+      {/* Logo / Project branding */}
       <div className="h-14 flex items-center gap-2.5 px-4 border-b border-slate-700/50 flex-shrink-0">
-        <div className="w-7 h-7 rounded-lg bg-indigo-500 flex items-center justify-center flex-shrink-0">
-          <Flame size={16} className="text-white" />
+        {project?.avatar ? (
+          <img src={project.avatar} alt="" className="w-7 h-7 rounded-lg flex-shrink-0" />
+        ) : (
+          <div className="w-7 h-7 rounded-lg bg-indigo-500 flex items-center justify-center flex-shrink-0">
+            <Flame size={16} className="text-white" />
+          </div>
+        )}
+        <div className="min-w-0">
+          <span className="text-sm font-semibold text-slate-100 tracking-tight block truncate">
+            {project?.name || 'Uplift Forge'}
+          </span>
+          {project?.key && (
+            <span className="text-[10px] text-slate-500 font-mono">{project.key}</span>
+          )}
         </div>
-        <span className="text-sm font-semibold text-slate-100 tracking-tight">Uplift Forge</span>
       </div>
 
       {/* Nav items */}
@@ -49,6 +63,14 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
           );
         })}
       </nav>
+
+      {/* Project lead */}
+      {project?.lead && (
+        <div className="px-4 py-3 border-t border-slate-700/50">
+          <span className="text-[10px] text-slate-500 uppercase tracking-wider">Lead</span>
+          <p className="text-xs text-slate-400 truncate">{project.lead}</p>
+        </div>
+      )}
     </aside>
   );
 };

@@ -129,20 +129,17 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onUpdate, missingFil
   };
 
   const handleSave = async (key: string) => {
+    if (saving) return;
     setSaving(key);
     try {
       const ticket = tickets.find(t => t.key === key);
       const merged = { ...ticket, ...(editing[key] || {}) };
-      const edits = editing[key] || {};
       const payload: Record<string, any> = {};
-      if ('tpd_bu' in edits) payload.tpd_bu = edits.tpd_bu;
-      if ('eng_hours' in edits) payload.eng_hours = edits.eng_hours;
-      if ('work_stream' in edits) payload.work_stream = edits.work_stream;
-      if (!('tpd_bu' in edits) && merged.tpd_bu) payload.tpd_bu = merged.tpd_bu;
-      if (!('eng_hours' in edits) && merged.eng_hours != null) payload.eng_hours = merged.eng_hours;
-      if (!('work_stream' in edits) && merged.work_stream) payload.work_stream = merged.work_stream;
+      if (merged.tpd_bu) payload.tpd_bu = merged.tpd_bu;
+      if (merged.eng_hours != null) payload.eng_hours = merged.eng_hours;
+      if (merged.work_stream) payload.work_stream = merged.work_stream;
       await updateTicket(key, payload);
-      toast.success(`Saved ${key} to JIRA`);
+      toast.success(`Saved ${key} to JIRA`, { id: `save-${key}` });
       const newEditing = { ...editing };
       delete newEditing[key];
       setEditing(newEditing);
@@ -150,7 +147,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onUpdate, missingFil
     } catch (error: any) {
       console.error('Failed to save ticket', error);
       const detail = error?.response?.data?.detail || error.message || 'Unknown error';
-      toast.error(`Failed to save ticket: ${detail}`);
+      toast.error(`Failed to save ticket: ${detail}`, { id: `save-err-${key}` });
     } finally {
       setSaving(null);
     }
@@ -163,11 +160,11 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onUpdate, missingFil
       if (res.data.hours !== null) {
         handleFieldChange(key, 'eng_hours', res.data.hours);
       } else {
-        toast.error('Could not calculate hours (no matching status transitions found)');
+        toast.error('Could not calculate hours (no matching status transitions found)', { id: `calc-hours-${key}` });
       }
     } catch (error) {
       console.error('Failed to calculate hours', error);
-      toast.error('Failed to calculate hours');
+      toast.error('Failed to calculate hours', { id: `calc-hours-err-${key}` });
     } finally {
       setCalculating(prev => ({ ...prev, [`${key}:hours`]: false }));
     }
@@ -181,11 +178,11 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onUpdate, missingFil
       if (value) {
         handleFieldChange(key, field, value);
       } else {
-        toast.error(`Could not compute ${field === 'tpd_bu' ? 'TPD BU' : 'Work Stream'} (no parent mapping found)`);
+        toast.error(`Could not compute ${field === 'tpd_bu' ? 'TPD BU' : 'Work Stream'} (no parent mapping found)`, { id: `calc-${field}-${key}` });
       }
     } catch (error) {
       console.error(`Failed to calculate ${field}`, error);
-      toast.error(`Failed to calculate ${field === 'tpd_bu' ? 'TPD BU' : 'Work Stream'}`);
+      toast.error(`Failed to calculate ${field === 'tpd_bu' ? 'TPD BU' : 'Work Stream'}`, { id: `calc-${field}-err-${key}` });
     } finally {
       setCalculating(prev => ({ ...prev, [`${key}:${field}`]: false }));
     }
@@ -198,10 +195,94 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onUpdate, missingFil
       onUpdate();
     } catch (error) {
       console.error('Failed to sync ticket', error);
-      toast.error('Sync failed for ticket ' + key);
+      toast.error('Sync failed for ticket ' + key, { id: `sync-err-${key}` });
     } finally {
       setSyncingRow(null);
     }
+  };
+
+  const [calcAllRunning, setCalcAllRunning] = useState(false);
+  const [calcAllProgress, setCalcAllProgress] = useState({ done: 0, total: 0 });
+
+  const handleCalculateAll = async () => {
+    const targets = paginatedTickets;
+    if (targets.length === 0) return;
+    setCalcAllRunning(true);
+    setCalcAllProgress({ done: 0, total: targets.length });
+
+    for (let i = 0; i < targets.length; i++) {
+      const ticket = targets[i];
+      const key = ticket.key;
+      try {
+        const [hoursRes, fieldsRes] = await Promise.all([
+          calculateHours(key).catch(() => null),
+          calculateFields(key).catch(() => null),
+        ]);
+        if (hoursRes?.data?.hours != null) {
+          handleFieldChange(key, 'eng_hours', hoursRes.data.hours);
+        }
+        if (fieldsRes?.data?.tpd_bu) {
+          handleFieldChange(key, 'tpd_bu', fieldsRes.data.tpd_bu);
+        }
+        if (fieldsRes?.data?.work_stream) {
+          handleFieldChange(key, 'work_stream', fieldsRes.data.work_stream);
+        }
+      } catch {
+        // Silently keep previous values
+      }
+      setCalcAllProgress({ done: i + 1, total: targets.length });
+    }
+
+    setCalcAllRunning(false);
+    toast.success(`Calculated ${targets.length} tickets`, { id: 'calc-all' });
+  };
+
+  const [saveAllRunning, setSaveAllRunning] = useState(false);
+  const [saveAllProgress, setSaveAllProgress] = useState({ done: 0, total: 0 });
+
+  const dirtyKeys = paginatedTickets.filter(t => editing[t.key] || t.has_computed_values).map(t => t.key);
+
+  const handleSaveAll = async () => {
+    if (dirtyKeys.length === 0) return;
+    const keysToSave = [...dirtyKeys];
+    setSaveAllRunning(true);
+    setSaveAllProgress({ done: 0, total: keysToSave.length });
+    let saved = 0;
+    let failed = 0;
+    const savedKeys: string[] = [];
+
+    for (let i = 0; i < keysToSave.length; i++) {
+      const key = keysToSave[i];
+      try {
+        const ticket = tickets.find(t => t.key === key);
+        const merged = { ...ticket, ...(editing[key] || {}) };
+        const payload: Record<string, any> = {};
+        if (merged.tpd_bu) payload.tpd_bu = merged.tpd_bu;
+        if (merged.eng_hours != null) payload.eng_hours = merged.eng_hours;
+        if (merged.work_stream) payload.work_stream = merged.work_stream;
+        await updateTicket(key, payload);
+        savedKeys.push(key);
+        saved++;
+      } catch {
+        failed++;
+      }
+      setSaveAllProgress({ done: i + 1, total: keysToSave.length });
+    }
+
+    // Batch-clear all saved keys from editing state
+    setEditing(prev => {
+      const next = { ...prev };
+      for (const key of savedKeys) delete next[key];
+      return next;
+    });
+
+    setSaveAllRunning(false);
+    if (failed === 0) {
+      toast.success(`Saved ${saved} tickets to JIRA`, { id: 'save-all' });
+    } else {
+      toast.error(`Saved ${saved}, failed ${failed}`, { id: 'save-all' });
+    }
+    onUpdate();
   };
 
   const CalcButton = ({ onClick, loading, title }: { onClick: () => void; loading: boolean; title: string }) => (
@@ -217,6 +298,41 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onUpdate, missingFil
 
   return (
     <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700/50 overflow-hidden shadow-xl shadow-black/20">
+      {/* Toolbar */}
+      <div className="px-4 py-2 border-b border-slate-700/40 flex items-center justify-between bg-slate-800/60">
+        <span className="text-xs text-slate-500">
+          {sortedTickets.length} ticket{sortedTickets.length !== 1 ? 's' : ''}
+          {missingFilter && ` (filtered from ${tickets.length})`}
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleCalculateAll}
+            disabled={calcAllRunning || saveAllRunning || paginatedTickets.length === 0}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 px-3 py-1.5 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Calculate eng hours, TPD BU, and work stream for all tickets on this page"
+          >
+            <Calculator size={13} className={calcAllRunning ? 'animate-pulse' : ''} />
+            {calcAllRunning
+              ? `Calculating ${calcAllProgress.done}/${calcAllProgress.total}...`
+              : 'Calculate All'}
+          </button>
+          <button
+            onClick={handleSaveAll}
+            disabled={saveAllRunning || calcAllRunning || dirtyKeys.length === 0}
+            className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+              dirtyKeys.length > 0
+                ? 'text-indigo-300 hover:text-indigo-200 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20'
+                : 'text-slate-500 bg-slate-700/20 border border-slate-700/30'
+            }`}
+            title="Save all modified tickets to JIRA"
+          >
+            <Save size={13} className={saveAllRunning ? 'animate-pulse' : ''} />
+            {saveAllRunning
+              ? `Saving ${saveAllProgress.done}/${saveAllProgress.total}...`
+              : `Save All${dirtyKeys.length > 0 ? ` (${dirtyKeys.length})` : ''}`}
+          </button>
+        </div>
+      </div>
       {missingFilter && (
         <div className="px-4 py-2 bg-rose-500/10 border-b border-rose-500/20 flex items-center justify-between">
           <span className="text-xs text-rose-300">

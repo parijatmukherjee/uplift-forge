@@ -1,17 +1,31 @@
 # Uplift Forge
 
-A web application that automates JIRA ticket field management. It calculates engineering hours from status transitions, maps TPD Business Units and Work Streams using a flexible rule engine, and provides inline editing with push-back to JIRA.
+An engineering team performance platform that connects to JIRA to provide automated field management, team-level KPIs, and data-driven insights. The UI personalizes itself with your JIRA project name, avatar, and team lead.
 
 ## Features
 
-- **Engineering Hours:** Auto-calculated from configurable status transitions (e.g. In Progress -> Code Review), respecting office hours, weekends, and excluded statuses (e.g. Blocked).
-- **Rule-Based Field Mapping:** TPD Business Unit and Work Stream are auto-assigned using a visual rule builder with AND/OR logic across multiple fields (parent key, labels, components, summary, issue type, priority, assignee).
-- **Ticket Filters:** Three modes — All Tickets, Last X Months (resolved date), Missing Required Fields.
-- **Per-field Recalculate:** Recompute any field on demand with a single click.
-- **Inline Editing:** Edit fields directly in the dashboard table and save back to JIRA.
-- **Dynamic Configuration:** Configure project key, custom field IDs, statuses, mapping rules, and filters from the UI — with on-demand field fetching from JIRA.
-- **Bulk & Single Sync:** Full project sync or per-ticket refresh from JIRA.
-- **Scheduled Sync:** APScheduler runs bulk sync at a configurable interval.
+### Team Metrics
+- **9 KPI cards** with trend badges (vs previous period): total tickets, story points, eng hours, estimation accuracy, avg hours/SP, avg cycle time, bug count, bug ratio, bug hours %.
+- **Period filtering**: All Time, Weekly, Bi-weekly, Monthly — with automatic previous-period comparison.
+- **Charts**: Monthly trend line, Eng Hours by BU (bar), Eng Hours by Work Stream (pie), SP by BU (bar), Issue Type breakdown (pie).
+- **Interactive tooltips**: Hover any `?` icon for KPI explanation, targets, and trend meanings. Hover trend badges to see current vs previous values.
+- **Configurable SP calibration**: Define how many man-days = 1 story point for your team.
+
+### Engineering Attribution
+- **Engineering Hours**: Auto-calculated from JIRA status transitions, respecting office hours, weekends, and excluded statuses.
+- **Rule-Based Mapping**: TPD Business Unit and Work Stream auto-assigned via visual rule builder with AND/OR logic across parent key, labels, components, summary, issue type, priority, and assignee.
+- **Inline Editing**: Edit fields directly in the table and save back to JIRA.
+- **Per-field Recalculate**: Recompute any field on demand with a single click.
+- **Missing Fields Filter**: Toggle to show only tickets needing attention.
+
+### Configuration
+Settings are organized by feature:
+- **JIRA Connection** — Project key, data time range (max 12 months).
+- **Team Metrics** — Story points field mapping, SP-to-days calibration.
+- **Engineering Attribution** — TPD BU / Eng Hours / Work Stream field mappings, mapping rules, display filter.
+- **Engineering Hours Calculation** — Start/end statuses, excluded statuses (shared by both features).
+
+All configuration is persisted to `config.yaml`.
 
 ## Quick Start
 
@@ -35,14 +49,12 @@ make docker-up
 - Backend API: http://localhost:8000
 
 ### 3. First-time setup
-1. Open the UI and click **Configure**.
-2. Enter your JIRA **Project Key** (e.g. `ACTIN`).
-3. Click **Fetch Fields** to load available custom fields and statuses.
-4. Map the three field IDs: TPD Business Unit, Engineering Hours, Work Stream.
-5. Set the **Start Status** and **End Status** for engineering hours calculation.
-6. Configure **Ticket Filter** (All, Last X Months, or Missing Fields).
-7. Add **TPD Business Unit** and **Work Stream** mapping rules using the visual rule builder.
-8. **Save** and click **Sync Now**.
+1. Open the UI — go to **Configuration**.
+2. Enter your JIRA **Project Key** and click **Fetch Fields**.
+3. Under **Team Metrics**: select the Story Points field and set SP calibration.
+4. Under **Engineering Attribution**: map TPD BU, Eng Hours, Work Stream fields. Add mapping rules.
+5. Under **Engineering Hours Calculation**: set start/end statuses and exclusions.
+6. **Save** and click **Sync & Refresh** on any tab.
 
 ## Running locally (development)
 
@@ -74,6 +86,6 @@ make run-frontend  # Vite dev server on :5173
 
 ## Tech Stack
 
-- **Backend:** FastAPI, `atlassian-python-api`, APScheduler, PyYAML
-- **Frontend:** React 19, TypeScript, Tailwind CSS v4, Lucide React, react-hot-toast
+- **Backend:** FastAPI, `atlassian-python-api`, PyYAML
+- **Frontend:** React 19, TypeScript, Tailwind CSS v4, Recharts, Lucide React, react-hot-toast
 - **Infrastructure:** Docker Compose, Makefile

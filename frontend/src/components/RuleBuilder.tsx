@@ -17,7 +17,7 @@ interface RuleGroups {
 
 interface RuleBuilderProps {
   title: string;
-  color: 'indigo' | 'emerald';
+  color: 'indigo' | 'emerald' | 'violet';
   groups: RuleGroups;
   onChange: (groups: RuleGroups) => void;
 }
@@ -66,6 +66,19 @@ const colorMap = {
     blockBg: 'bg-emerald-500/5',
     blockBorder: 'border-emerald-500/10',
     orDivider: 'border-emerald-500/20 text-emerald-400/60',
+  },
+  violet: {
+    bg: 'bg-violet-500/8',
+    border: 'border-violet-500/20',
+    title: 'text-violet-300',
+    groupBg: 'bg-violet-500/5',
+    groupBorder: 'border-violet-500/15',
+    badge: 'bg-violet-500/20 text-violet-300 border-violet-500/30',
+    btn: 'text-violet-400 hover:text-violet-300 hover:bg-violet-400/10',
+    addGroup: 'border-violet-500/20 text-violet-400 hover:bg-violet-500/10',
+    blockBg: 'bg-violet-500/5',
+    blockBorder: 'border-violet-500/10',
+    orDivider: 'border-violet-500/20 text-violet-400/60',
   },
 };
 

@@ -19,8 +19,22 @@ async def get_config():
         "eng_start_status": app_config.eng_start_status,
         "eng_end_status": app_config.eng_end_status,
         "eng_excluded_statuses": app_config.eng_excluded_statuses,
-        "ticket_filter": app_config.ticket_filter
+        "ticket_filter": app_config.ticket_filter,
+        "sp_to_days": app_config.sp_to_days
     }
+
+@router.get("/jira/project")
+async def get_jira_project():
+    try:
+        project = jira_client.get_project(app_config.project_key)
+        return {
+            "key": project.get("key"),
+            "name": project.get("name"),
+            "lead": project.get("lead", {}).get("displayName"),
+            "avatar": project.get("avatarUrls", {}).get("48x48"),
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 @router.get("/jira/statuses")
 async def get_jira_statuses():
@@ -60,6 +74,7 @@ async def update_config_route(payload: dict):
     eng_excluded_statuses = payload.get("eng_excluded_statuses")
     ticket_filter = payload.get("ticket_filter")
     mapping_rules = payload.get("mapping_rules")
+    sp_to_days = payload.get("sp_to_days")
 
     project_key_changed = new_project_key and new_project_key != app_config.project_key
     filter_changed = ticket_filter is not None and ticket_filter != app_config.ticket_filter
@@ -72,7 +87,8 @@ async def update_config_route(payload: dict):
         eng_end=eng_end,
         eng_excluded_statuses=eng_excluded_statuses,
         ticket_filter=ticket_filter,
-        mapping_rules=mapping_rules
+        mapping_rules=mapping_rules,
+        sp_to_days=sp_to_days
     )
 
     needs_sync = project_key_changed or filter_changed

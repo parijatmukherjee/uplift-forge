@@ -7,6 +7,7 @@ jira:
   email: your-email@omio.com
   field_ids:
     eng_hours: customfield_18466
+    story_points: customfield_10004
     tpd_bu: customfield_17924
     work_stream: customfield_18837
   project_key: ACTIN
@@ -27,6 +28,7 @@ office_hours:
   exclude_weekends: true
   start: 09:00
   timezone: Europe/Berlin
+sp_to_days: 1.0
 sync:
   auto_write_to_jira: false
   interval_minutes: 60

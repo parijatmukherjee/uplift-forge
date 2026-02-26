@@ -1,6 +1,11 @@
 import { BarChart3, Settings, Flame } from 'lucide-react';
+import type { ProjectInfo } from '../App';
 
-const HomePage = () => {
+interface HomePageProps {
+  project?: ProjectInfo | null;
+}
+
+const HomePage: React.FC<HomePageProps> = ({ project }) => {
   return (
     <div className="flex flex-col h-full">
       {/* Page header */}
@@ -13,12 +18,20 @@ const HomePage = () => {
         <div className="max-w-2xl w-full mt-8">
           {/* Welcome */}
           <div className="text-center mb-10">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-500 flex items-center justify-center mx-auto mb-4">
-              <Flame size={28} className="text-white" />
-            </div>
-            <h2 className="text-2xl font-bold text-slate-100 mb-2">Welcome to Uplift Forge</h2>
+            {project?.avatar ? (
+              <img src={project.avatar} alt="" className="w-14 h-14 rounded-2xl mx-auto mb-4" />
+            ) : (
+              <div className="w-14 h-14 rounded-2xl bg-indigo-500 flex items-center justify-center mx-auto mb-4">
+                <Flame size={28} className="text-white" />
+              </div>
+            )}
+            <h2 className="text-2xl font-bold text-slate-100 mb-2">
+              {project?.name ? `${project.name}` : 'Welcome to Uplift Forge'}
+            </h2>
             <p className="text-slate-400 text-sm max-w-md mx-auto">
-              A tool for uplifting engineering team performance through data-driven insights and automated JIRA field management.
+              {project?.name
+                ? `Engineering performance dashboard for the ${project.name} team. Data-driven insights and automated JIRA field management.`
+                : 'A tool for uplifting engineering team performance through data-driven insights and automated JIRA field management.'}
             </p>
           </div>
 

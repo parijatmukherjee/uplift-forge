@@ -4,14 +4,16 @@ import toast from 'react-hot-toast';
 import TicketTable from '../components/TicketTable';
 import TicketSummary from '../components/TicketSummary';
 import { getTickets, triggerSync } from '../api';
+import type { ProjectInfo } from '../App';
 
 export type MissingFilter = 'tpd_bu' | 'eng_hours' | 'work_stream' | null;
 
 interface EngineeringAttributionProps {
   refreshKey: number;
+  project?: ProjectInfo | null;
 }
 
-const EngineeringAttribution: React.FC<EngineeringAttributionProps> = ({ refreshKey }) => {
+const EngineeringAttribution: React.FC<EngineeringAttributionProps> = ({ refreshKey, project }) => {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -65,7 +67,9 @@ const EngineeringAttribution: React.FC<EngineeringAttributionProps> = ({ refresh
       {/* Page header */}
       <div className="px-6 py-4 border-b border-slate-700/50 flex justify-between items-center flex-shrink-0">
         <div>
-          <h1 className="text-lg font-semibold text-slate-100">Engineering Attribution</h1>
+          <h1 className="text-lg font-semibold text-slate-100">
+            {project?.name ? `${project.name} — Engineering Attribution` : 'Engineering Attribution'}
+          </h1>
           {lastSynced && (
             <p className="text-xs text-slate-400 mt-0.5">Last synced at {lastSynced}</p>
           )}
