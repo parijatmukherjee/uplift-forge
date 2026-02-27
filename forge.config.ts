@@ -19,7 +19,7 @@ const config: ForgeConfig = {
   ],
   publishers: [
     new PublisherGithub({
-      repository: { owner: 'parijatmukherjee', name: 'uplift-forge' },
+      repository: { owner: 'pmomio', name: 'uplift-forge' },
       prerelease: false,
       draft: true,
     }),

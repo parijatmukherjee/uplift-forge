@@ -33,7 +33,7 @@ const mockFetch = vi.fn();
 function makeRelease(tag: string, assets: Array<{ name: string; browser_download_url: string }> = []) {
   return {
     tag_name: tag,
-    html_url: `https://github.com/parijatmukherjee/uplift-forge/releases/tag/${tag}`,
+    html_url: `https://github.com/pmomio/uplift-forge/releases/tag/${tag}`,
     body: `Release notes for ${tag}`,
     assets,
   };
@@ -188,7 +188,7 @@ describe('update.service', () => {
 
     await checkForUpdates();
     await downloadUpdate();
-    expect(mockOpenExternal).toHaveBeenCalledWith('https://github.com/parijatmukherjee/uplift-forge/releases/tag/v2.0.0');
+    expect(mockOpenExternal).toHaveBeenCalledWith('https://github.com/pmomio/uplift-forge/releases/tag/v2.0.0');
   });
 
   it('downloadUpdate throws when no URL available', async () => {

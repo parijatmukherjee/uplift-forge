@@ -3,7 +3,7 @@ import { gt, valid } from 'semver';
 import { Channels } from '../../shared/channels.js';
 import type { UpdateInfo } from '../../shared/types.js';
 
-const REPO_OWNER = 'parijatmukherjee';
+const REPO_OWNER = 'pmomio';
 const REPO_NAME = 'uplift-forge';
 const CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000; // 4 hours
 const INITIAL_DELAY_MS = 30 * 1000; // 30 seconds after app ready

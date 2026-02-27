@@ -14,6 +14,10 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pmomio/uplift-forge.git"
+  },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^10.0.0",

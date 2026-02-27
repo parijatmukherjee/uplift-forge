@@ -16,7 +16,7 @@ const hasUpdate: UpdateInfo = {
   currentVersion: '1.0.0',
   latestVersion: '2.0.0',
   updateAvailable: true,
-  releaseUrl: 'https://github.com/parijatmukherjee/uplift-forge/releases/tag/v2.0.0',
+  releaseUrl: 'https://github.com/pmomio/uplift-forge/releases/tag/v2.0.0',
   releaseNotes: 'Bug fixes',
   downloadUrl: 'https://dl/uplift-forge.dmg',
 };
