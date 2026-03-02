@@ -13,10 +13,14 @@ vi.mock('../../api', () => ({
   getJiraMembers: vi.fn(),
   checkForUpdates: vi.fn(),
   downloadUpdate: vi.fn(),
+  getAiConfig: vi.fn(),
+  setAiConfig: vi.fn(),
+  deleteAiConfig: vi.fn(),
+  testAiConnection: vi.fn(),
 }));
 
 import ConfigPanel from '../ConfigPanel';
-import { getConfig, saveConfig, getJiraFields, getJiraStatuses, getJiraMembers, checkForUpdates } from '../../api';
+import { getConfig, saveConfig, getJiraFields, getJiraStatuses, getJiraMembers, checkForUpdates, getAiConfig } from '../../api';
 import toast from 'react-hot-toast';
 
 const mockConfig = {
@@ -46,6 +50,7 @@ describe('ConfigPanel', () => {
     });
     (getJiraMembers as ReturnType<typeof vi.fn>).mockResolvedValue({ data: [] });
     (checkForUpdates as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { currentVersion: '1.0.0', updateAvailable: false } });
+    (getAiConfig as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { provider: 'openai', hasKey: false } });
   });
 
   const switchTab = (tabName: string) => {
