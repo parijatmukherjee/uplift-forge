@@ -20,7 +20,8 @@ src/
 │   ├── index.ts                   # App entry, window creation
 │   ├── preload.ts                 # Context bridge (exposes window.api)
 │   ├── auth/
-│   │   └── token-store.ts         # OS keychain credential storage (safeStorage)
+│   │   ├── token-store.ts         # OS keychain credential storage (safeStorage)
+│   │   └── ai-key-store.ts        # Encrypted AI API key storage (separate store)
 │   ├── ipc/
 │   │   └── handlers.ts            # All ipcMain.handle() registrations
 │   └── services/
@@ -29,6 +30,7 @@ src/
 │       ├── field-engine.service.ts # Eng hours calc (state machine) + rule-based field mapping
 │       ├── ticket.service.ts      # Ticket caching, sync, processing, JIRA write-back
 │       ├── metrics.service.ts     # Team + individual KPI computation
+│       ├── ai.service.ts          # AI suggestion service (OpenAI + Claude)
 │       └── update.service.ts      # OTA update check via GitHub Releases
 ├── renderer/                      # React frontend
 │   ├── App.tsx                    # Root: auth gate, sidebar routing, refresh key
@@ -46,6 +48,7 @@ src/
 │       ├── TicketSummary.tsx      # Summary stats bar
 │       ├── RuleBuilder.tsx        # AND/OR rule editor for field mapping
 │       ├── ModalDialog.tsx        # Reusable modal
+│       ├── SuggestionPanel.tsx    # AI suggestion slide-out panel
 │       └── UpdateBanner.tsx       # OTA update notification
 └── shared/                        # Shared between main and renderer
     ├── types.ts                   # All TypeScript interfaces
@@ -54,6 +57,7 @@ test/
 └── main/
     ├── field-engine.test.ts       # Eng hours + rule engine tests
     ├── metrics.test.ts            # Metrics computation tests
+    ├── ai.service.test.ts         # AI service tests (prompt, parsing, errors)
     └── update.test.ts             # Update service tests
 ```
 
@@ -116,9 +120,39 @@ State machine in `field-engine.service.ts:calculateEngineeringHours()`:
 
 **Trend colors**: estimation_accuracy is special — closer to 1.0 is better regardless of up/down direction. Other metrics use `LOWER_IS_BETTER` set for bug/cycle/hours-per-SP metrics.
 
+### AI-Powered Suggestions
+
+Adds per-KPI AI suggestions via OpenAI (`gpt-4o-mini`) or Claude (`claude-sonnet-4-20250514`).
+
+- **Config flow**: User selects provider + enters API key in Settings → key is sent to main process via `AI_CONFIG_SET` IPC → encrypted and stored in a separate electron-store (`'ai-keys'`) → renderer only receives `{ provider, hasKey: boolean }` via `AI_CONFIG_GET` (key never returned to renderer)
+- **Suggestion flow**: Renderer builds `AiSuggestRequest` (metric name, values, trend, help text, context) → sends via `AI_SUGGEST` IPC → `ai.service.ts` in main process reads key from store, constructs system+user prompts, calls the provider API → parses JSON array response → returns `AiSuggestResponse` with suggestion strings
+- **Prompt design**: System prompt requests a senior engineering manager persona with bare JSON array output. `buildUserPrompt()` assembles metric context. `parseAiResponse()` handles clean JSON, markdown-fenced JSON, and regex extraction as fallbacks.
+- **Error handling**: 401 (bad key), 429 (rate limit), network failures, malformed JSON — all surfaced in the SuggestionPanel with a retry button
+
 ### IPC Pattern
 
 All renderer↔main communication uses typed IPC channels defined in `shared/channels.ts`. The renderer's `api.ts` wraps IPC calls in `{ data }` to match Axios response shape. The preload script (`preload.ts`) exposes `window.api` via `contextBridge`.
+
+## Security: API Key Isolation
+
+**Critical rule: API keys (JIRA and AI) must NEVER be readable from the renderer process.**
+
+Both credential stores follow the same isolation pattern:
+
+| Layer | JIRA (`token-store.ts`) | AI (`ai-key-store.ts`) |
+|-------|------------------------|----------------------|
+| Storage | electron-store `'auth-tokens'` | electron-store `'ai-keys'` |
+| Encryption | `safeStorage.encryptString()` (OS keychain) | Same |
+| Write | Renderer sends key via IPC → main encrypts + stores → clears from renderer state | Same |
+| Read (renderer) | `AUTH_STATE` returns `{ status, email, baseUrl }` — no token | `AI_CONFIG_GET` returns `{ provider, hasKey }` — no key |
+| Read (main only) | `getAuthHeader()` / `getCredentials()` | `getAiApiKey()` |
+| API calls | `jira.service.ts` in main process only | `ai.service.ts` in main process only |
+
+**When modifying credential handling:**
+- Never add an IPC handler that returns raw keys/tokens to the renderer
+- Never log keys to console (even in main process)
+- The renderer's ConfigPanel clears the key from React state immediately after the save IPC call succeeds (`setAiApiKey('')`)
+- `getAiApiKey()` is only importable from main process modules — never expose it in `preload.ts`
 
 ## Testing
 
