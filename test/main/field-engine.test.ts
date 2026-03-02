@@ -152,18 +152,25 @@ describe('calculateEngineeringHours', () => {
     expect(calculateEngineeringHours('not a list' as unknown as any[])).toBeNull();
   });
 
-  it('no start status returns null', () => {
+  it('no start status returns 0', () => {
     const histories = [
       makeStatusHistory('2026-02-26T10:00:00+01:00', 'Open', 'Code Review'),
     ];
-    expect(calculateEngineeringHours(histories)).toBeNull();
+    expect(calculateEngineeringHours(histories)).toBe(0);
   });
 
-  it('no end status returns null', () => {
+  it('no end status returns 0', () => {
     const histories = [
       makeStatusHistory(DateTime.fromObject({ year: 2026, month: 2, day: 26, hour: 10 }, { zone: tz }).toISO()!, 'Open', 'In Progress'),
     ];
-    expect(calculateEngineeringHours(histories)).toBeNull();
+    expect(calculateEngineeringHours(histories)).toBe(0);
+  });
+
+  it('ticket moved directly to Rejected (no mapped statuses) returns 0', () => {
+    const histories = [
+      makeStatusHistory('2026-02-26T10:00:00+01:00', 'Todo', 'Rejected'),
+    ];
+    expect(calculateEngineeringHours(histories)).toBe(0);
   });
 
   it('case insensitive status matching', () => {
@@ -262,7 +269,7 @@ describe('calculateEngineeringHours', () => {
         items: [{ field: 'status', fromString: 'Open' }],
       },
     ];
-    expect(calculateEngineeringHours(histories as any)).toBeNull();
+    expect(calculateEngineeringHours(histories as any)).toBe(0);
   });
 });
 

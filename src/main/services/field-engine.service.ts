@@ -98,7 +98,7 @@ export function calculateEngineeringHours(histories: HistoryEntry[]): number | n
     }
   }
 
-  if (activePeriods.length === 0) return null;
+  if (activePeriods.length === 0) return 0;
 
   const total = activePeriods.reduce(
     (sum, [s, e]) => sum + computeOfficeHours(s, e, cfg.office_hours),
