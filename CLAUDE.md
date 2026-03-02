@@ -105,6 +105,7 @@ State machine in `field-engine.service.ts:calculateEngineeringHours()`:
 - Excluded statuses (e.g. "Blocked") pause the clock
 - Office hours: timezone-aware, weekday-only, configurable start/end times
 - **Known pitfall**: JIRA's `toString` changelog property collides with `Object.prototype.toString`. Must use bracket notation + typeof check (see `getStatusTo()` helper)
+- **No matching statuses → 0 hours**: If a ticket never enters the configured start/end statuses (e.g. Todo → Rejected), returns `0` instead of `null`. Only non-array input returns `null`.
 
 ### Config Defaults
 

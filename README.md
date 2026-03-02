@@ -150,6 +150,8 @@ A state machine walks through every status transition in the changelog:
 
 This repeats for every cycle. All periods are summed. Office hours are computed timezone-aware (default: 09:00-18:00 Europe/Berlin, weekdays only).
 
+If a ticket never passes through the configured start/end statuses (e.g. moved directly from Todo to Rejected), engineering hours are recorded as **0** rather than left blank.
+
 ---
 
 ## Privacy & Security
