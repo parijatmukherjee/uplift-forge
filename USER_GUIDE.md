@@ -369,7 +369,7 @@ When you click Sparkles:
 
 ---
 
-## 🔄 Updating the App
+## 🔄 Updating the App (WIP)
 
 The app checks for updates automatically every 4 hours ⏰, and you can check manually from **Settings → Application Settings**.
 
