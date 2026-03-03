@@ -35,11 +35,11 @@ Uplift Forge is a desktop app that connects to JIRA and turns ticket data into c
 ```bash
 git clone git@github.com:pmomio/uplift-forge.git
 cd uplift-forge
-npm install
-npm start
+make setup
+make dev
 ```
 
-The app launches in development mode with hot-reload. 🔥 For packaged builds, run `npm run make` to produce a DMG (macOS) or installer (Windows).
+The app launches in development mode with hot-reload. 🔥 For packaged builds, run `make make-dist` to produce a DMG (macOS) or installer (Windows). Run `make help` to see all available commands. 📖
 
 ---
 
@@ -436,26 +436,29 @@ Track epic-level delivery progress and identify risks 📊. Available for **Engi
 
 ### 📋 What You See
 
-- 📊 **Summary stats** — total epics, breakdown by risk level (high 🔴, medium 🟡, low 🟢)
-- 🃏 **Epic cards** — color-coded by risk level, showing progress bars, ticket counts, and SP totals
+- 📊 **Summary stats** — total epics, in-progress count, breakdown by risk level (high 🔴, medium 🟡, low 🟢)
+- 🃏 **Epic cards** — color-coded by risk level, showing progress bars, done/active ticket counts, and SP totals
 - ⚠️ **Risk badges** — auto-computed risk score (0.00-1.00) with level indicator
+- 🕐 **In-progress epics** — epics with unresolved tickets now appear (not just fully-resolved epics)
 
 ### 🔍 Expanding an Epic
 
 Click any epic card to expand it. The detail section shows:
 
 - ⚠️ **Risk Factors** — human-readable descriptions of why the risk score is elevated
-- 📊 **Stats** — average cycle time, risk score, total/resolved SP
+- 📊 **Stats** — avg cycle time, avg lead time, flow efficiency, risk score, rework count, aging WIP, total/resolved SP
 - 📋 **Child Tickets** — a table of all tickets under this epic with status, SP, and hours
 - 🤖 **AI Risk Analysis** — click the Sparkles button to get AI-powered risk mitigation suggestions
 
 ### 🧮 How Risk is Calculated
 
-The risk score combines 5 factors automatically:
-- 📉 **Progress** (30% weight) — how much work remains
-- ⏰ **Overdue tickets** (30% weight) — tickets exceeding 2x the average cycle time
-- 🚫 **Blocked tickets** (20% weight) — tickets currently in Blocked status
+The risk score combines 7 factors automatically using the **Timeline Engine** 🕐:
+- 📉 **Progress** (25% weight) — how much work remains
+- ⏰ **Overdue tickets** (20% weight) — WIP tickets exceeding 2x the average cycle time (uses timeline active hours)
+- 🚫 **Blocked tickets** (15% weight) — tickets with blocked time detected from changelogs (falls back to status name)
 - 🐛 **Bug ratio** (10% weight) — proportion of bug-type tickets
+- 🔁 **Rework** (10% weight) — tickets with backward status transitions detected from timeline
+- ⏳ **Aging WIP** (10% weight) — active tickets stuck beyond the aging warning threshold
 - 🔄 **Reopened tickets** (10% weight) — tickets that were resolved but reopened
 
 Risk levels: **Low** (0-0.3) 🟢, **Medium** (0.3-0.6) 🟡, **High** (0.6-1.0) 🔴

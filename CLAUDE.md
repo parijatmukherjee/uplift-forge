@@ -104,19 +104,25 @@ e2e/                               # 🎭 End-to-end tests (Playwright + Electro
 
 ## 💻 Commands
 
+All commands are accessed via `make`. Run `make help` to see all available targets. 🎯
+
 ```bash
-npm start              # 🔥 Dev mode (Electron Forge + Vite HMR)
-npm test               # 🧪 Run all tests (vitest run)
-npm run test:watch     # 👀 Watch mode
-npm run test:coverage  # 📊 Coverage report (v8)
-npm run lint           # 🔍 ESLint
-npm run test:e2e       # 🎭 Run e2e tests (Playwright + Electron)
-npm run test:e2e:headed # 👀 E2e tests with visible window
-npm run test:e2e:debug # 🐛 E2e debug mode (Playwright Inspector)
-npm run test:all       # 🧪🎭 Run unit + e2e tests
-npm run package        # 📦 Package the app
-npm run make           # 🏗️ Build distributables (DMG, Squirrel, ZIP)
-npm run publish        # 🚀 Publish to GitHub Releases
+make help              # 📖 Show all available targets
+make setup             # 📦 Install all dependencies
+make dev               # 🔥 Dev mode (Electron Forge + Vite HMR)
+make test              # 🧪 Run all unit tests (vitest)
+make test-watch        # 👀 Watch mode
+make test-coverage     # 📊 Coverage report (v8)
+make lint              # 🔍 ESLint
+make test-e2e          # 🎭 Run e2e tests (Playwright + Electron)
+make test-e2e-headed   # 👀 E2e tests with visible window
+make test-e2e-debug    # 🐛 E2e debug mode (Playwright Inspector)
+make test-all          # 🧪🎭 Run unit + e2e tests
+make package           # 📦 Package the app
+make make-dist         # 🏗️ Build distributables (DMG, Squirrel, ZIP)
+make publish           # 🚀 Publish to GitHub Releases
+make clean             # 🧹 Remove build artifacts (out/, .vite/)
+make rebuild           # 🔄 Clean and reinstall from scratch
 ```
 
 ## 🏛️ Architecture
@@ -309,19 +315,27 @@ The app supports 4 personas with genuinely different metrics, backed by a shared
 
 ### 🏔️ Epic Tracker
 
-Groups tickets by `parent_key` (JIRA parent field) and computes delivery risk:
+Groups tickets by `parent_key` (JIRA parent field) and computes delivery risk using the **Timeline Engine**.
+
+**📡 JQL includes in-progress tickets**: `AND (resolved >= "date" OR resolution = EMPTY)` — fetches both recently-resolved AND all currently-unresolved tickets, so epics with in-progress children are visible.
+
+**🕐 Timeline-based metrics** per epic: `avgCycleTime` (from `timeline.cycleTimeHours`), `avgLeadTime`, `avgFlowEfficiency`, `reworkCount`, `agingWipCount`, `inProgressTickets`. All optional fields on `EpicSummary`.
+
+**⚠️ 7-factor risk scoring** (weights sum to 1.0):
 
 ```
-riskScore = (1 - progressPct) * 0.3    // low progress
-           + overdueRatio * 0.3         // tickets past 2x avg cycle time
-           + blockedRatio * 0.2         // blocked tickets
-           + bugRatio * 0.1             // bug type tickets
-           + reopenRatio * 0.1          // tickets reopened after resolution
+riskScore = (1 - progressPct) * 0.25   // low progress
+           + overdueRatio * 0.20        // WIP tickets past 2x avg cycle time (timeline activeTimeHours)
+           + blockedRatio * 0.15        // tickets with blockedTimeHours > 0 (fallback: status string)
+           + bugRatio * 0.10            // bug type tickets
+           + reworkRatio * 0.10         // tickets with hasRework (backward transitions)
+           + agingWipRatio * 0.10       // active tickets past aging_thresholds.warning_days
+           + reopenRatio * 0.10         // tickets reopened after resolution
 
 riskLevel: low (0-0.3), medium (0.3-0.6), high (0.6-1.0)
 ```
 
-The `epic.service.ts` generates human-readable `riskFactors[]` strings for each detected issue.
+The `epic.service.ts` generates human-readable `riskFactors[]` strings for each detected issue. Tickets without timeline data fall back to status string matching.
 
 ### 📁 Multi-Project Support
 
@@ -392,7 +406,7 @@ Both credential stores follow the same isolation pattern:
 - 🎭 Main service tests mock `electron-store` and `getConfig()` via `vi.mock()`
 - 🌐 Renderer tests use jsdom + Testing Library, mock `window.api` globally
 - 📊 Coverage thresholds: statements 90%, branches 80%, functions 85%, lines 90%
-- ✅ 672 tests across 33 test suites
+- ✅ 685 tests across 33 test suites
 
 ### 🎭 E2E Tests (Playwright + Electron)
 - 🔌 Launches the **real packaged app** (`out/Uplift Forge-darwin-arm64/`) per test

@@ -33,6 +33,11 @@ const mockEpic: EpicSummary = {
     { key: 'T-1', summary: 'Task 1', status: 'Done', assignee: 'Alice', assignee_id: 'a1', issue_type: 'Story', story_points: 3, eng_hours: 10, tpd_bu: null, work_stream: null, resolved: '2025-01-01', has_computed_values: false },
     { key: 'T-2', summary: 'Task 2', status: 'In Progress', assignee: 'Bob', assignee_id: 'b1', issue_type: 'Story', story_points: 5, eng_hours: null, tpd_bu: null, work_stream: null, resolved: null, has_computed_values: false },
   ],
+  inProgressTickets: 3,
+  avgLeadTime: 48.5,
+  reworkCount: 2,
+  agingWipCount: 1,
+  avgFlowEfficiency: 65.3,
 };
 
 const mockEpicHigh: EpicSummary = {
@@ -48,6 +53,11 @@ const mockEpicHigh: EpicSummary = {
   riskLevel: 'high',
   riskFactors: ['0% complete'],
   childTickets: [],
+  inProgressTickets: 3,
+  avgLeadTime: null,
+  reworkCount: 0,
+  agingWipCount: 0,
+  avgFlowEfficiency: null,
 };
 
 describe('EpicTracker', () => {
@@ -97,8 +107,9 @@ describe('EpicTracker', () => {
     render(<EpicTracker refreshKey={0} />);
     await waitFor(() => {
       expect(screen.getByText('Total Epics')).toBeInTheDocument();
-      expect(screen.getByText('2')).toBeInTheDocument(); // 2 epics total
+      expect(screen.getByText('In Progress')).toBeInTheDocument();
       expect(screen.getByText('High Risk')).toBeInTheDocument();
+      expect(screen.getByText('Low Risk')).toBeInTheDocument();
     });
   });
 
@@ -126,10 +137,17 @@ describe('EpicTracker', () => {
     });
   });
 
-  it('shows ticket counts', async () => {
+  it('shows ticket counts with active count', async () => {
     render(<EpicTracker refreshKey={0} />);
     await waitFor(() => {
-      expect(screen.getByText('2/5 tickets')).toBeInTheDocument();
+      expect(screen.getByText(/2\/5 done · 3 active/)).toBeInTheDocument();
+    });
+  });
+
+  it('displays In Progress stat card', async () => {
+    render(<EpicTracker refreshKey={0} />);
+    await waitFor(() => {
+      expect(screen.getByText('In Progress')).toBeInTheDocument();
     });
   });
 
@@ -191,6 +209,20 @@ describe('EpicTracker', () => {
     await waitFor(() => expect(listEpics).toHaveBeenCalledTimes(1));
     rerender(<EpicTracker refreshKey={1} />);
     await waitFor(() => expect(listEpics).toHaveBeenCalledTimes(2));
+  });
+
+  it('shows new mini-stats when expanded', async () => {
+    render(<EpicTracker refreshKey={0} />);
+    await waitFor(() => screen.getByText('Build new feature'));
+    fireEvent.click(screen.getByText('Build new feature'));
+    await waitFor(() => {
+      expect(screen.getByText('Avg Lead Time')).toBeInTheDocument();
+      expect(screen.getByText('48.5h')).toBeInTheDocument();
+      expect(screen.getByText('Flow Efficiency')).toBeInTheDocument();
+      expect(screen.getByText('65.3%')).toBeInTheDocument();
+      expect(screen.getByText('Rework Count')).toBeInTheDocument();
+      expect(screen.getByText('Aging WIP')).toBeInTheDocument();
+    });
   });
 
   it('shows AI Risk Analysis button when expanded and AI configured', async () => {

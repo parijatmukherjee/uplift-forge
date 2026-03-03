@@ -34,6 +34,11 @@ export interface EpicSummary {
   riskLevel: 'low' | 'medium' | 'high';
   riskFactors: string[];
   childTickets: ProcessedTicket[];
+  inProgressTickets?: number;
+  avgLeadTime?: number | null;
+  reworkCount?: number;
+  agingWipCount?: number;
+  avgFlowEfficiency?: number | null;
 }
 
 export interface Rule {

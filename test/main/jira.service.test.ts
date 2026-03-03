@@ -83,6 +83,7 @@ describe('jira.service', () => {
       await getIssues('PROJ', 3);
       const callUrl = (fetch as any).mock.calls[0][0] as string;
       expect(callUrl).toContain('resolved');
+      expect(callUrl).toContain('resolution');
     });
 
     it('handles empty result', async () => {

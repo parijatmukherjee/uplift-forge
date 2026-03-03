@@ -51,7 +51,7 @@ export async function getIssues(projectKey: string, months?: number): Promise<un
     const maxDay = new Date(y, m, 0).getDate(); // day 0 of next month = last day of m
     const d = Math.min(now.getDate(), maxDay);
     const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    jql += ` AND resolved >= "${dateStr}"`;
+    jql += ` AND (resolved >= "${dateStr}" OR resolution = EMPTY)`;
   }
 
   jql += ' ORDER BY updated DESC';

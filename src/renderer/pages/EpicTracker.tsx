@@ -133,8 +133,9 @@ const EpicTracker: React.FC<EpicTrackerProps> = ({ refreshKey, project, persona,
         ) : (
           <div className="max-w-5xl space-y-4">
             {/* Summary stats */}
-            <div className="grid grid-cols-4 gap-3 mb-6">
+            <div className="grid grid-cols-5 gap-3 mb-6">
               <StatCard label="Total Epics" value={epics.length} />
+              <StatCard label="In Progress" value={epics.filter(e => (e.inProgressTickets ?? 0) > 0).length} color="text-sky-400" />
               <StatCard label="High Risk" value={epics.filter(e => e.riskLevel === 'high').length} color="text-rose-400" />
               <StatCard label="Medium Risk" value={epics.filter(e => e.riskLevel === 'medium').length} color="text-amber-400" />
               <StatCard label="Low Risk" value={epics.filter(e => e.riskLevel === 'low').length} color="text-emerald-400" />
@@ -171,7 +172,7 @@ const EpicTracker: React.FC<EpicTrackerProps> = ({ refreshKey, project, persona,
                     {/* Progress bar */}
                     <div className="w-48 flex-shrink-0">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] text-slate-500">{epic.resolvedTickets}/{epic.totalTickets} tickets</span>
+                        <span className="text-[10px] text-slate-500">{epic.resolvedTickets}/{epic.totalTickets} done{epic.inProgressTickets ? ` · ${epic.inProgressTickets} active` : ''}</span>
                         <span className="text-xs font-semibold text-slate-300">{Math.round(epic.progressPct * 100)}%</span>
                       </div>
                       <div className="w-full h-2 bg-slate-700/50 rounded-full overflow-hidden">
@@ -207,7 +208,13 @@ const EpicTracker: React.FC<EpicTrackerProps> = ({ refreshKey, project, persona,
                       {/* Stats */}
                       <div className="grid grid-cols-4 gap-3">
                         <MiniStat label="Avg Cycle Time" value={epic.avgCycleTime ? `${epic.avgCycleTime}h` : 'N/A'} />
+                        <MiniStat label="Avg Lead Time" value={epic.avgLeadTime != null ? `${epic.avgLeadTime}h` : 'N/A'} />
+                        <MiniStat label="Flow Efficiency" value={epic.avgFlowEfficiency != null ? `${epic.avgFlowEfficiency}%` : 'N/A'} />
                         <MiniStat label="Risk Score" value={epic.riskScore.toFixed(2)} />
+                      </div>
+                      <div className="grid grid-cols-4 gap-3">
+                        <MiniStat label="Rework Count" value={String(epic.reworkCount ?? 0)} />
+                        <MiniStat label="Aging WIP" value={String(epic.agingWipCount ?? 0)} />
                         <MiniStat label="Total SP" value={String(epic.totalSP)} />
                         <MiniStat label="Resolved SP" value={String(epic.resolvedSP)} />
                       </div>

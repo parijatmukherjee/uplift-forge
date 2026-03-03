@@ -6,15 +6,32 @@ vi.mock('../../src/main/services/ticket.service.js', () => ({
   FINAL_STATUSES: ['Done', 'Resolved', 'Closed'],
 }));
 
+// Mock timeline service
+vi.mock('../../src/main/services/timeline.service.js', () => ({
+  getTimelines: vi.fn(() => []),
+}));
+
+// Mock config service
+vi.mock('../../src/main/services/config.service.js', () => ({
+  getConfig: vi.fn(() => ({
+    aging_thresholds: { warning_days: 5, critical_days: 10, escalation_days: 15 },
+  })),
+}));
+
 import { getEpicSummaries, getEpicDetail } from '../../src/main/services/epic.service.js';
 import { getAllTickets } from '../../src/main/services/ticket.service.js';
-import type { ProcessedTicket } from '../../src/shared/types.js';
+import { getTimelines } from '../../src/main/services/timeline.service.js';
+import { getConfig } from '../../src/main/services/config.service.js';
+import type { ProcessedTicket, TicketTimeline } from '../../src/shared/types.js';
 
 const mockGetAllTickets = vi.mocked(getAllTickets);
+const mockGetTimelines = vi.mocked(getTimelines);
+const mockGetConfig = vi.mocked(getConfig);
 
 function makeTicket(overrides: Partial<ProcessedTicket> = {}): ProcessedTicket {
   return {
     key: 'T-1',
+    project_key: 'PROJ',
     summary: 'Test ticket',
     status: 'In Progress',
     assignee: 'Alice',
@@ -25,9 +42,35 @@ function makeTicket(overrides: Partial<ProcessedTicket> = {}): ProcessedTicket {
     tpd_bu: null,
     work_stream: null,
     resolved: null,
+    created: null,
+    updated: null,
+    priority: 'Medium',
+    base_url: 'https://jira.test',
     has_computed_values: false,
     parent_key: undefined,
     parent_summary: undefined,
+    labels: [],
+    sprint_id: null,
+    sprint_name: null,
+    components: [],
+    ...overrides,
+  };
+}
+
+function makeTimeline(overrides: Partial<TicketTimeline> = {}): TicketTimeline {
+  return {
+    key: 'T-1',
+    statusPeriods: [],
+    cycleTimeHours: null,
+    leadTimeHours: null,
+    activeTimeHours: 0,
+    waitTimeHours: 0,
+    blockedTimeHours: 0,
+    flowEfficiency: null,
+    hasRework: false,
+    reworkCount: 0,
+    currentStatus: 'In Progress',
+    daysInCurrentStatus: 0,
     ...overrides,
   };
 }
@@ -35,6 +78,10 @@ function makeTicket(overrides: Partial<ProcessedTicket> = {}): ProcessedTicket {
 describe('epic.service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetTimelines.mockReturnValue([]);
+    mockGetConfig.mockReturnValue({
+      aging_thresholds: { warning_days: 5, critical_days: 10, escalation_days: 15 },
+    } as any);
   });
 
   describe('getEpicSummaries', () => {
@@ -93,23 +140,95 @@ describe('epic.service', () => {
       expect(epic.progressPct).toBe(0.25);
     });
 
-    it('computes avgCycleTime from resolved tickets with eng_hours', () => {
+    it('computes avgCycleTime from timeline cycleTimeHours', () => {
       mockGetAllTickets.mockReturnValue([
-        makeTicket({ key: 'T-1', parent_key: 'EPIC-1', parent_summary: 'E', status: 'Done', eng_hours: 10 }),
-        makeTicket({ key: 'T-2', parent_key: 'EPIC-1', parent_summary: 'E', status: 'Done', eng_hours: 20 }),
-        makeTicket({ key: 'T-3', parent_key: 'EPIC-1', parent_summary: 'E', status: 'In Progress', eng_hours: 5 }),
+        makeTicket({ key: 'T-1', parent_key: 'EPIC-1', parent_summary: 'E', status: 'Done' }),
+        makeTicket({ key: 'T-2', parent_key: 'EPIC-1', parent_summary: 'E', status: 'Done' }),
+        makeTicket({ key: 'T-3', parent_key: 'EPIC-1', parent_summary: 'E', status: 'In Progress' }),
+      ]);
+      mockGetTimelines.mockReturnValue([
+        makeTimeline({ key: 'T-1', cycleTimeHours: 24 }),
+        makeTimeline({ key: 'T-2', cycleTimeHours: 48 }),
+        makeTimeline({ key: 'T-3', cycleTimeHours: null, activeTimeHours: 10 }),
       ]);
       const epic = getEpicSummaries().find(e => e.key === 'EPIC-1')!;
-      expect(epic.avgCycleTime).toBe(15); // (10 + 20) / 2
+      expect(epic.avgCycleTime).toBe(36); // (24 + 48) / 2
     });
 
-    it('returns null avgCycleTime when no resolved tickets have hours', () => {
+    it('returns null avgCycleTime when no resolved tickets have timeline cycle time', () => {
       mockGetAllTickets.mockReturnValue([
-        makeTicket({ key: 'T-1', parent_key: 'EPIC-1', parent_summary: 'E', status: 'Done', eng_hours: null }),
+        makeTicket({ key: 'T-1', parent_key: 'EPIC-1', parent_summary: 'E', status: 'Done' }),
         makeTicket({ key: 'T-2', parent_key: 'EPIC-1', parent_summary: 'E', status: 'In Progress' }),
+      ]);
+      mockGetTimelines.mockReturnValue([
+        makeTimeline({ key: 'T-1', cycleTimeHours: null }),
       ]);
       const epic = getEpicSummaries().find(e => e.key === 'EPIC-1')!;
       expect(epic.avgCycleTime).toBeNull();
+    });
+
+    it('computes inProgressTickets count', () => {
+      mockGetAllTickets.mockReturnValue([
+        makeTicket({ key: 'T-1', parent_key: 'EPIC-1', parent_summary: 'E', status: 'Done' }),
+        makeTicket({ key: 'T-2', parent_key: 'EPIC-1', parent_summary: 'E', status: 'In Progress' }),
+        makeTicket({ key: 'T-3', parent_key: 'EPIC-1', parent_summary: 'E', status: 'Code Review' }),
+      ]);
+      const epic = getEpicSummaries().find(e => e.key === 'EPIC-1')!;
+      expect(epic.inProgressTickets).toBe(2);
+    });
+
+    it('computes avgLeadTime from timeline', () => {
+      mockGetAllTickets.mockReturnValue([
+        makeTicket({ key: 'T-1', parent_key: 'EPIC-1', parent_summary: 'E', status: 'Done' }),
+        makeTicket({ key: 'T-2', parent_key: 'EPIC-1', parent_summary: 'E', status: 'Done' }),
+      ]);
+      mockGetTimelines.mockReturnValue([
+        makeTimeline({ key: 'T-1', leadTimeHours: 100 }),
+        makeTimeline({ key: 'T-2', leadTimeHours: 200 }),
+      ]);
+      const epic = getEpicSummaries().find(e => e.key === 'EPIC-1')!;
+      expect(epic.avgLeadTime).toBe(150);
+    });
+
+    it('computes reworkCount from timelines', () => {
+      mockGetAllTickets.mockReturnValue([
+        makeTicket({ key: 'T-1', parent_key: 'EPIC-1', parent_summary: 'E', status: 'Done' }),
+        makeTicket({ key: 'T-2', parent_key: 'EPIC-1', parent_summary: 'E', status: 'In Progress' }),
+      ]);
+      mockGetTimelines.mockReturnValue([
+        makeTimeline({ key: 'T-1', reworkCount: 2, hasRework: true }),
+        makeTimeline({ key: 'T-2', reworkCount: 1, hasRework: true }),
+      ]);
+      const epic = getEpicSummaries().find(e => e.key === 'EPIC-1')!;
+      expect(epic.reworkCount).toBe(3);
+    });
+
+    it('computes agingWipCount from timelines', () => {
+      mockGetAllTickets.mockReturnValue([
+        makeTicket({ key: 'T-1', parent_key: 'EPIC-1', parent_summary: 'E', status: 'In Progress' }),
+        makeTicket({ key: 'T-2', parent_key: 'EPIC-1', parent_summary: 'E', status: 'In Progress' }),
+        makeTicket({ key: 'T-3', parent_key: 'EPIC-1', parent_summary: 'E', status: 'Done' }),
+      ]);
+      mockGetTimelines.mockReturnValue([
+        makeTimeline({ key: 'T-1', daysInCurrentStatus: 7 }), // >= 5 → aging
+        makeTimeline({ key: 'T-2', daysInCurrentStatus: 2 }), // < 5 → not aging
+        makeTimeline({ key: 'T-3', daysInCurrentStatus: 20 }), // Done → not counted
+      ]);
+      const epic = getEpicSummaries().find(e => e.key === 'EPIC-1')!;
+      expect(epic.agingWipCount).toBe(1);
+    });
+
+    it('computes avgFlowEfficiency from resolved timelines', () => {
+      mockGetAllTickets.mockReturnValue([
+        makeTicket({ key: 'T-1', parent_key: 'EPIC-1', parent_summary: 'E', status: 'Done' }),
+        makeTicket({ key: 'T-2', parent_key: 'EPIC-1', parent_summary: 'E', status: 'Done' }),
+      ]);
+      mockGetTimelines.mockReturnValue([
+        makeTimeline({ key: 'T-1', flowEfficiency: 60 }),
+        makeTimeline({ key: 'T-2', flowEfficiency: 80 }),
+      ]);
+      const epic = getEpicSummaries().find(e => e.key === 'EPIC-1')!;
+      expect(epic.avgFlowEfficiency).toBe(70);
     });
 
     it('assigns low risk for high progress', () => {
@@ -131,16 +250,31 @@ describe('epic.service', () => {
         makeTicket({ key: 'T-4', parent_key: 'EPIC-1', parent_summary: 'E', status: 'In Progress' }),
       ]);
       const epic = getEpicSummaries().find(e => e.key === 'EPIC-1')!;
-      // 0% progress → factor = 1.0 * 0.3 = 0.3 → medium or high
+      // 0% progress → factor = 1.0 * 0.25 = 0.25
       expect(epic.riskScore).toBeGreaterThan(0);
       expect(epic.riskFactors.length).toBeGreaterThan(0);
     });
 
-    it('includes blocked factor in risk', () => {
+    it('includes blocked factor using timeline blockedTimeHours', () => {
+      mockGetAllTickets.mockReturnValue([
+        makeTicket({ key: 'T-1', parent_key: 'EPIC-1', parent_summary: 'E', status: 'In Progress' }),
+        makeTicket({ key: 'T-2', parent_key: 'EPIC-1', parent_summary: 'E', status: 'In Progress' }),
+      ]);
+      mockGetTimelines.mockReturnValue([
+        makeTimeline({ key: 'T-1', blockedTimeHours: 10 }),
+        makeTimeline({ key: 'T-2', blockedTimeHours: 0 }),
+      ]);
+      const epic = getEpicSummaries().find(e => e.key === 'EPIC-1')!;
+      expect(epic.riskFactors.some(f => f.includes('blocked'))).toBe(true);
+    });
+
+    it('falls back to status string for blocked when no timeline', () => {
       mockGetAllTickets.mockReturnValue([
         makeTicket({ key: 'T-1', parent_key: 'EPIC-1', parent_summary: 'E', status: 'Blocked' }),
         makeTicket({ key: 'T-2', parent_key: 'EPIC-1', parent_summary: 'E', status: 'In Progress' }),
       ]);
+      // No timelines → fallback to status string matching
+      mockGetTimelines.mockReturnValue([]);
       const epic = getEpicSummaries().find(e => e.key === 'EPIC-1')!;
       expect(epic.riskFactors.some(f => f.includes('blocked'))).toBe(true);
     });
@@ -155,6 +289,32 @@ describe('epic.service', () => {
       expect(epic.riskFactors.some(f => f.includes('Bug ratio'))).toBe(true);
     });
 
+    it('includes rework factor from timeline data', () => {
+      mockGetAllTickets.mockReturnValue([
+        makeTicket({ key: 'T-1', parent_key: 'EPIC-1', parent_summary: 'E', status: 'In Progress' }),
+        makeTicket({ key: 'T-2', parent_key: 'EPIC-1', parent_summary: 'E', status: 'Done' }),
+      ]);
+      mockGetTimelines.mockReturnValue([
+        makeTimeline({ key: 'T-1', hasRework: true, reworkCount: 2 }),
+        makeTimeline({ key: 'T-2', hasRework: false, reworkCount: 0 }),
+      ]);
+      const epic = getEpicSummaries().find(e => e.key === 'EPIC-1')!;
+      expect(epic.riskFactors.some(f => f.includes('rework'))).toBe(true);
+    });
+
+    it('includes aging WIP factor from timeline data', () => {
+      mockGetAllTickets.mockReturnValue([
+        makeTicket({ key: 'T-1', parent_key: 'EPIC-1', parent_summary: 'E', status: 'In Progress' }),
+        makeTicket({ key: 'T-2', parent_key: 'EPIC-1', parent_summary: 'E', status: 'Done' }),
+      ]);
+      mockGetTimelines.mockReturnValue([
+        makeTimeline({ key: 'T-1', daysInCurrentStatus: 10 }), // >= 5 threshold
+        makeTimeline({ key: 'T-2', daysInCurrentStatus: 10 }),
+      ]);
+      const epic = getEpicSummaries().find(e => e.key === 'EPIC-1')!;
+      expect(epic.riskFactors.some(f => f.includes('aging'))).toBe(true);
+    });
+
     it('includes reopen factor for tickets with resolved date but not final', () => {
       mockGetAllTickets.mockReturnValue([
         makeTicket({ key: 'T-1', parent_key: 'EPIC-1', parent_summary: 'E', status: 'In Progress', resolved: '2025-01-01' }),
@@ -164,6 +324,19 @@ describe('epic.service', () => {
       expect(epic.riskFactors.some(f => f.includes('reopened'))).toBe(true);
     });
 
+    it('uses overdue factor from timeline activeTimeHours for WIP tickets', () => {
+      mockGetAllTickets.mockReturnValue([
+        makeTicket({ key: 'T-1', parent_key: 'EPIC-1', parent_summary: 'E', status: 'Done' }),
+        makeTicket({ key: 'T-2', parent_key: 'EPIC-1', parent_summary: 'E', status: 'In Progress' }),
+      ]);
+      mockGetTimelines.mockReturnValue([
+        makeTimeline({ key: 'T-1', cycleTimeHours: 10 }),
+        makeTimeline({ key: 'T-2', cycleTimeHours: null, activeTimeHours: 25 }), // > 2x avg (10)
+      ]);
+      const epic = getEpicSummaries().find(e => e.key === 'EPIC-1')!;
+      expect(epic.riskFactors.some(f => f.includes('exceeded 2x'))).toBe(true);
+    });
+
     it('sorts epics by riskScore descending', () => {
       mockGetAllTickets.mockReturnValue([
         // EPIC-1: all done → low risk
@@ -171,7 +344,7 @@ describe('epic.service', () => {
         makeTicket({ key: 'T-2', parent_key: 'EPIC-1', parent_summary: 'Low Risk', status: 'Done' }),
         // EPIC-2: all in progress → higher risk
         makeTicket({ key: 'T-3', parent_key: 'EPIC-2', parent_summary: 'High Risk', status: 'In Progress' }),
-        makeTicket({ key: 'T-4', parent_key: 'EPIC-2', parent_summary: 'High Risk', status: 'Blocked' }),
+        makeTicket({ key: 'T-4', parent_key: 'EPIC-2', parent_summary: 'High Risk', status: 'In Progress' }),
       ]);
       const result = getEpicSummaries();
       expect(result[0].key).toBe('EPIC-2');
@@ -203,6 +376,18 @@ describe('epic.service', () => {
       ]);
       const epic = getEpicSummaries().find(e => e.key === 'EPIC-1')!;
       expect(epic.totalSP).toBe(5);
+    });
+
+    it('defaults agingThresholdDays to 5 when no config', () => {
+      mockGetConfig.mockReturnValue({} as any);
+      mockGetAllTickets.mockReturnValue([
+        makeTicket({ key: 'T-1', parent_key: 'EPIC-1', parent_summary: 'E', status: 'In Progress' }),
+      ]);
+      mockGetTimelines.mockReturnValue([
+        makeTimeline({ key: 'T-1', daysInCurrentStatus: 6 }), // >= 5 default
+      ]);
+      const epic = getEpicSummaries().find(e => e.key === 'EPIC-1')!;
+      expect(epic.agingWipCount).toBe(1);
     });
   });
 
@@ -246,6 +431,12 @@ describe('epic.service', () => {
       ]);
       getEpicDetail('EPIC-1', 'PROJ-B');
       expect(mockGetAllTickets).toHaveBeenCalledWith('PROJ-B');
+    });
+
+    it('passes projectKey to getTimelines when provided', () => {
+      mockGetAllTickets.mockReturnValue([]);
+      getEpicSummaries('PROJ-A');
+      expect(mockGetTimelines).toHaveBeenCalledWith('PROJ-A');
     });
 
     it('groups tickets from different project keys under same epic', () => {

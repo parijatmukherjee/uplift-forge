@@ -4,6 +4,7 @@
 - **Always update docs after changes**: After any code changes, update README.md, CLAUDE.md, and any spec files. This was explicitly requested by the user.
 - **Always update USER_GUIDE.md**: When adding a new feature, the end-user guide (`USER_GUIDE.md`) must be updated. Explicitly requested by the user.
 - **Use playful emojis in docs**: All documentation files (README.md, CLAUDE.md, USER_GUIDE.md) should use playful emojis throughout. Explicitly requested by the user.
+- **Makefile is the primary developer interface**: All commands in docs must use `make` targets, NOT raw `npm` commands. The Makefile wraps all npm scripts and is the single entry point for developers and end-users. When adding new npm scripts, always add a corresponding Makefile target. Explicitly requested by the user.
 - **Memory lives in repo**: The memory folder must reside at `.claude/memory/` inside the repository, not the external Claude projects path.
 
 ## Project State
