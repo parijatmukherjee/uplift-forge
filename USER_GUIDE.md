@@ -448,7 +448,7 @@ Click any epic card to expand it. The detail section shows:
 - ⚠️ **Risk Factors** — human-readable descriptions of why the risk score is elevated
 - 📊 **Stats** — avg cycle time, avg lead time, flow efficiency, risk score, rework count, aging WIP, total/resolved SP
 - 📋 **Child Tickets** — a table of all tickets under this epic with status, SP, and hours
-- 🤖 **AI Risk Analysis** — click the Sparkles button to get AI-powered risk mitigation suggestions
+- 🤖 **AI Risk Analysis** — click the Sparkles button to get AI-powered risk mitigation suggestions (sends full timeline context: cycle time, lead time, flow efficiency, rework count, aging WIP, in-progress tickets)
 
 ### 🧮 How Risk is Calculated
 

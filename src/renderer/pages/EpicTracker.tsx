@@ -65,10 +65,13 @@ const EpicTracker: React.FC<EpicTrackerProps> = ({ refreshKey, project, persona,
 
   useEffect(() => {
     getAiConfig().then(res => {
-      const cfg = res.data as { provider: AiProvider; hasKey: boolean };
-      setAiConfigured(cfg.hasKey);
-      setAiProvider(cfg.provider);
-    }).catch(() => {});
+      if (res.data?.hasKey) {
+        setAiConfigured(true);
+        setAiProvider((res.data as { provider: AiProvider }).provider);
+      }
+    }).catch((err) => {
+      console.error('[EpicTracker] Failed to load AI config:', err);
+    });
   }, []);
 
   const handleAiSuggest = useCallback(async (epic: EpicSummary) => {
@@ -82,7 +85,7 @@ const EpicTracker: React.FC<EpicTrackerProps> = ({ refreshKey, project, persona,
         previousValue: null,
         trendDirection: null,
         trendPct: null,
-        helpContent: `Epic ${epic.key}: ${epic.summary}\nProgress: ${Math.round(epic.progressPct * 100)}% (${epic.resolvedTickets}/${epic.totalTickets} tickets)\nRisk: ${epic.riskLevel} (${epic.riskScore})\nRisk factors: ${epic.riskFactors.join('; ')}\nTotal SP: ${epic.totalSP}, Resolved SP: ${epic.resolvedSP}\nAvg Cycle Time: ${epic.avgCycleTime ?? 'N/A'}h`,
+        helpContent: `Epic ${epic.key}: ${epic.summary}\nProgress: ${Math.round(epic.progressPct * 100)}% (${epic.resolvedTickets}/${epic.totalTickets} tickets)\nRisk: ${epic.riskLevel} (${epic.riskScore})\nRisk factors: ${epic.riskFactors.join('; ')}\nTotal SP: ${epic.totalSP}, Resolved SP: ${epic.resolvedSP}\nAvg Cycle Time: ${epic.avgCycleTime ?? 'N/A'}h\nAvg Lead Time: ${epic.avgLeadTime ?? 'N/A'}h\nFlow Efficiency: ${epic.avgFlowEfficiency ?? 'N/A'}%\nRework Count: ${epic.reworkCount ?? 0}\nAging WIP: ${epic.agingWipCount ?? 0}\nIn Progress Tickets: ${epic.inProgressTickets ?? 0}`,
         context: 'team',
       });
       const data = res.data as { suggestions: string[]; error?: string };
@@ -266,7 +269,7 @@ const EpicTracker: React.FC<EpicTrackerProps> = ({ refreshKey, project, persona,
                           className={`inline-flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
                             aiConfigured
                               ? 'text-violet-400 border-violet-500/30 bg-violet-500/10 hover:bg-violet-500/20'
-                              : 'text-slate-600 border-slate-700/30 cursor-not-allowed'
+                              : 'text-slate-500 border-slate-600/40 bg-slate-800/40 cursor-not-allowed'
                           }`}
                           title={aiConfigured ? 'Get AI risk mitigation suggestions' : 'Configure AI in Settings first'}
                         >

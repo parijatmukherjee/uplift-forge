@@ -194,7 +194,7 @@ Track epic-level delivery progress 📋. Available for Engineering Managers and 
 - 🃏 **Epic cards** — expandable with progress bars, risk badges, done/active ticket counts
 - ⚠️ **7-factor risk scoring** — weighted formula using Timeline Engine data: progress (0.25), overdue (0.20), blocked (0.15), bugs (0.10), rework (0.10), aging WIP (0.10), reopened (0.10)
 - 📈 **Timeline-based metrics** — avg lead time, flow efficiency, rework count, aging WIP count per epic
-- 🤖 **AI Risk Analysis** — per-epic AI suggestions for risk mitigation
+- 🤖 **AI Risk Analysis** — per-epic AI suggestions with full timeline context (progress, risk, cycle time, lead time, flow efficiency, rework, aging WIP, in-progress count)
 
 ### 🔧 Settings
 

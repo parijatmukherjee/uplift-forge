@@ -249,5 +249,12 @@ describe('EpicTracker', () => {
       expect(screen.getByText('Split blocked tasks')).toBeInTheDocument();
       expect(screen.getByText('Add more reviewers')).toBeInTheDocument();
     });
+    // Verify enriched helpContent includes timeline metrics
+    const call = (getAiSuggestions as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(call.helpContent).toContain('Avg Lead Time: 48.5h');
+    expect(call.helpContent).toContain('Flow Efficiency: 65.3%');
+    expect(call.helpContent).toContain('Rework Count: 2');
+    expect(call.helpContent).toContain('Aging WIP: 1');
+    expect(call.helpContent).toContain('In Progress Tickets: 3');
   });
 });

@@ -337,6 +337,8 @@ riskLevel: low (0-0.3), medium (0.3-0.6), high (0.6-1.0)
 
 The `epic.service.ts` generates human-readable `riskFactors[]` strings for each detected issue. Tickets without timeline data fall back to status string matching.
 
+**🤖 AI Risk Analysis context**: The `handleAiSuggest` in `EpicTracker.tsx` sends enriched `helpContent` to the AI service including all timeline metrics: progress, risk score/level/factors, SP totals, avg cycle time, avg lead time, flow efficiency, rework count, aging WIP count, and in-progress ticket count.
+
 ### 📁 Multi-Project Support
 
 `project.service.ts` provides CRUD for project configs, `ticket.service.ts` provides per-project caching:
