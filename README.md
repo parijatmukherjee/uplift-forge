@@ -238,7 +238,7 @@ Releases are published to GitHub via `npm run publish`. The app checks for updat
 
 ## 📜 License
 
-MIT
+GNU GPL v3
 
 ---
 
