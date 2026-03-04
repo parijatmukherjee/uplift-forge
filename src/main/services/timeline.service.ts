@@ -358,14 +358,17 @@ export function computeSpAccuracy(
  */
 export function computeReviewDuration(
   timelines: TicketTimeline[],
+  reviewKeywords?: string[],
 ): number | null {
+  const kws = (reviewKeywords ?? ['review']).map(k => k.toLowerCase());
   const durations: number[] = [];
 
   for (const tl of timelines) {
     let reviewHours = 0;
     let hasReview = false;
     for (const sp of tl.statusPeriods) {
-      if (sp.status.toLowerCase().includes('review')) {
+      const lower = sp.status.toLowerCase();
+      if (kws.some(kw => lower.includes(kw))) {
         reviewHours += sp.durationHours;
         hasReview = true;
       }

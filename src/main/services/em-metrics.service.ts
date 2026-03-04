@@ -17,8 +17,6 @@ import type {
   TicketTimeline,
 } from '../../shared/types.js';
 
-const BUG_TYPES = new Set(['bug', 'defect']);
-
 /**
  * EM Team Metrics — cycle time distribution, throughput, contribution,
  * aging WIP, bug ratios, rework rate.
@@ -28,6 +26,7 @@ export function getEmTeamMetrics(period: string, projectKey?: string): EmTeamMet
   const tickets = getAllTickets(projectKey);
   const ticketMap = new Map(tickets.map(t => [t.key, t]));
   const cfg = getConfig();
+  const bugSet = new Set((cfg.bug_type_names ?? ['bug', 'defect']).map(s => s.toLowerCase()));
   const trackedIds = new Set((cfg.tracked_engineers ?? []).map(e => e.accountId));
   const traces: Record<string, string> = {};
 
@@ -64,7 +63,7 @@ export function getEmTeamMetrics(period: string, projectKey?: string): EmTeamMet
   const agingWip = computeAgingWip(scopedAllTimelines, ticketMap, thresholds);
 
   // Bug ratio by engineer (scoped to tracked engineers)
-  const bugRatioByEngineer = computeBugRatioByEngineer(scopedTickets);
+  const bugRatioByEngineer = computeBugRatioByEngineer(scopedTickets, bugSet);
 
   // Rework rate (scoped to tracked engineers)
   const reworkCount = scopedTimelines.filter(tl => tl.hasRework).length;
@@ -73,7 +72,7 @@ export function getEmTeamMetrics(period: string, projectKey?: string): EmTeamMet
   // New metrics
   const spAccuracy = computeSpAccuracy(scopedTickets, scopedTimelines, cfg.sp_to_days ?? 1);
   const firstTimePassRate = 1 - reworkRate;
-  const avgReviewDurationHours = computeReviewDuration(scopedTimelines);
+  const avgReviewDurationHours = computeReviewDuration(scopedTimelines, cfg.review_status_keywords);
   const workTypeDistribution = computeWorkTypeDistribution(scopedTickets);
   const unestimatedCount = scopedTickets.filter(t => t.story_points == null || t.story_points === 0).length;
   const unestimatedRatio = scopedTickets.length > 0 ? unestimatedCount / scopedTickets.length : 0;
@@ -128,6 +127,8 @@ export function getEmIndividualMetrics(period: string, projectKey?: string): EmI
   const tickets = getAllTickets(projectKey);
   const ticketMap = new Map(tickets.map(t => [t.key, t]));
   const cfg = getConfig();
+  const bugSet = new Set((cfg.bug_type_names ?? ['bug', 'defect']).map(s => s.toLowerCase()));
+  const productSet = new Set((cfg.product_type_names ?? ['story', 'task', 'feature', 'enhancement', 'improvement']).map(s => s.toLowerCase()));
   const trackedIds = new Set((cfg.tracked_engineers ?? []).map(e => e.accountId));
   const traces: Record<string, string> = {};
 
@@ -162,14 +163,13 @@ export function getEmIndividualMetrics(period: string, projectKey?: string): EmI
     const reworkCount = group.timelines.filter(tl => tl.hasRework).length;
     const reworkRate = group.timelines.length > 0 ? reworkCount / group.timelines.length : 0;
 
-    const bugCount = group.tickets.filter(t => BUG_TYPES.has(t.issue_type.toLowerCase())).length;
+    const bugCount = group.tickets.filter(t => bugSet.has(t.issue_type.toLowerCase())).length;
     const bugRatio = group.tickets.length > 0 ? bugCount / group.tickets.length : 0;
 
     const totalSP = group.tickets.reduce((sum, t) => sum + (t.story_points ?? 0), 0);
     const complexityScore = group.tickets.length > 0 ? totalSP / group.tickets.length : null;
 
-    const productTypes = new Set(['story', 'task', 'feature', 'enhancement', 'improvement']);
-    const productTickets = group.tickets.filter(t => productTypes.has(t.issue_type.toLowerCase())).length;
+    const productTickets = group.tickets.filter(t => productSet.has(t.issue_type.toLowerCase())).length;
     const focusRatio = group.tickets.length > 0 ? productTickets / group.tickets.length : null;
 
     const engSpAccuracy = computeSpAccuracy(group.tickets, group.timelines, cfg.sp_to_days ?? 1);
@@ -200,7 +200,7 @@ export function getEmIndividualMetrics(period: string, projectKey?: string): EmI
   const teamBugCount = filteredTimelines
     .map(tl => ticketMap.get(tl.key))
     .filter((t): t is ProcessedTicket => t != null)
-    .filter(t => BUG_TYPES.has(t.issue_type.toLowerCase())).length;
+    .filter(t => bugSet.has(t.issue_type.toLowerCase())).length;
   const teamReworkCount = filteredTimelines.filter(tl => tl.hasRework).length;
 
   const totalTickets = filteredTimelines.length;
@@ -382,14 +382,14 @@ function computeAgingWip(
   return aging.sort((a, b) => b.daysInStatus - a.daysInStatus);
 }
 
-function computeBugRatioByEngineer(tickets: ProcessedTicket[]): EngineerBugRatio[] {
+function computeBugRatioByEngineer(tickets: ProcessedTicket[], bugSet: Set<string>): EngineerBugRatio[] {
   const byAssignee = new Map<string, { displayName: string; bugs: number; total: number }>();
 
   for (const t of tickets) {
     if (!t.assignee_id) continue;
     const entry = byAssignee.get(t.assignee_id) ?? { displayName: t.assignee, bugs: 0, total: 0 };
     entry.total++;
-    if (BUG_TYPES.has(t.issue_type.toLowerCase())) entry.bugs++;
+    if (bugSet.has(t.issue_type.toLowerCase())) entry.bugs++;
     byAssignee.set(t.assignee_id, entry);
   }
 

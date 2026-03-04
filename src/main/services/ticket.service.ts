@@ -14,8 +14,6 @@ import type { ProcessedTicket, ProjectConfig, AppConfig, MappingRules } from '..
  * When projectKey is omitted from getTickets/getAllTickets, all projects are aggregated.
  */
 
-export const FINAL_STATUSES = ['Done', 'Rejected', 'Closed', 'Resolved', 'Cancelled'];
-
 // In-memory caches — project-keyed
 const projectTicketCaches = new Map<string, Map<string, ProcessedTicket>>();
 const projectRawCaches = new Map<string, Map<string, Record<string, unknown>>>();
@@ -549,7 +547,8 @@ export function getTickets(projectKey?: string): ProcessedTicket[] {
     }
   }
 
-  let filtered = allTickets.filter((t) => FINAL_STATUSES.includes(t.status));
+  const doneSet = new Set(cfg.done_statuses.map(s => s.toLowerCase()));
+  let filtered = allTickets.filter((t) => doneSet.has(t.status.toLowerCase()));
 
   if (cfg.ticket_filter.mode === 'missing_fields') {
     filtered = filtered.filter((t) => !t.tpd_bu || t.eng_hours == null || !t.work_stream);

@@ -18,6 +18,8 @@ out/
 # Test / Coverage
 coverage/
 .vitest-cache/
+test-results/
+e2e-report/
 
 # Logs
 *.log

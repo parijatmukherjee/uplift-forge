@@ -190,6 +190,13 @@ State machine in `field-engine.service.ts:calculateEngineeringHours()`:
 - `active_statuses`: ["In Progress", "Code Review", "QA"]
 - `blocked_statuses`: ["Blocked"]
 - `done_statuses`: ["Done", "Resolved", "Closed", "Rejected", "Cancelled"]
+- `bug_type_names`: ["bug", "defect"] 🐛
+- `product_type_names`: ["story", "task", "feature", "enhancement", "improvement"] 📦
+- `tech_debt_label_names`: ["tech-debt", "technical-debt", "debt", "maintenance"] 🔧
+- `review_status_keywords`: ["review"] 🔍
+- `product_work_stream_names`: ["product"] 🏷️
+
+**🚫 No hardcoded JIRA values**: All JIRA statuses, issue types, field values, and labels are config-driven. Only `config.service.ts` defaults may contain literal values. All matching is **case-insensitive**.
 
 ### 📊 Persona-Specific Metrics
 

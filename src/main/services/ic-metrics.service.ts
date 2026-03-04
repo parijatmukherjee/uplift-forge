@@ -75,10 +75,10 @@ export function getIcPersonalMetrics(period: string, projectKey?: string): IcPer
   // New metrics
   const spAccuracy = computeSpAccuracy(filteredTickets, filteredTimelines, cfg.sp_to_days ?? 1);
   const firstTimePassRate = 1 - reworkRate;
-  const avgReviewWaitHours = computeReviewDuration(filteredTimelines);
+  const avgReviewWaitHours = computeReviewDuration(filteredTimelines, cfg.review_status_keywords);
 
-  const productTypes = new Set(['story', 'task', 'feature', 'enhancement', 'improvement']);
-  const productTicketCount = filteredTickets.filter(t => productTypes.has(t.issue_type.toLowerCase())).length;
+  const productSet = new Set((cfg.product_type_names ?? ['story', 'task', 'feature', 'enhancement', 'improvement']).map(s => s.toLowerCase()));
+  const productTicketCount = filteredTickets.filter(t => productSet.has(t.issue_type.toLowerCase())).length;
   const focusScore = filteredTickets.length > 0 ? productTicketCount / filteredTickets.length : null;
 
   // Totals
@@ -116,7 +116,7 @@ export function getIcPersonalMetrics(period: string, projectKey?: string): IcPer
 
   traces.avgReviewWait = `${filteredTimelines.length} timelines\n${avgReviewWaitHours != null ? `Avg review wait = ${avgReviewWaitHours.toFixed(1)}h` : 'No review periods found'}`;
 
-  traces.focusScore = `${filteredTickets.length} tickets\n${productTicketCount} product types (story, task, feature, enhancement, improvement)\n${focusScore != null ? `Focus score = ${(focusScore * 100).toFixed(0)}%` : 'No data'}`;
+  traces.focusScore = `${filteredTickets.length} tickets\n${productTicketCount} product types (${(cfg.product_type_names ?? ['story', 'task', 'feature', 'enhancement', 'improvement']).join(', ')})\n${focusScore != null ? `Focus score = ${(focusScore * 100).toFixed(0)}%` : 'No data'}`;
 
   if (teamComparison) {
     traces.teamComparison = `${new Map(allTimelines.map(tl => [ticketMap.get(tl.key)?.assignee_id, true])).size} engineers in comparison\n${teamComparison.map(tc => `${tc.metric}: mine = ${tc.myValue.toFixed(1)}, team median = ${tc.teamMedian.toFixed(1)}`).join('\n')}`;

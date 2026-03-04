@@ -92,8 +92,8 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
                   project_name: k,
                   field_ids: { tpd_bu: '', eng_hours: '', work_stream: '', story_points: '' },
                   mapping_rules: { tpd_bu: {}, work_stream: {} },
-                  eng_start_status: 'In Progress',
-                  eng_end_status: 'In Review',
+                  eng_start_status: '',
+                  eng_end_status: '',
                 }));
               }
             }

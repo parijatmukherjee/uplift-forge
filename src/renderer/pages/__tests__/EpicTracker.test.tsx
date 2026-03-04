@@ -10,6 +10,10 @@ vi.mock('../../api', () => ({
   syncEpics: vi.fn(),
   getAiConfig: vi.fn(),
   getAiSuggestions: vi.fn(),
+  getConfig: vi.fn().mockResolvedValue({ data: {
+    done_statuses: ['Done', 'Resolved', 'Closed', 'Rejected', 'Cancelled'],
+    blocked_statuses: ['Blocked'],
+  }}),
 }));
 
 import EpicTracker from '../EpicTracker';

@@ -1,5 +1,5 @@
 import { getConfig } from './config.service.js';
-import { getTickets, FINAL_STATUSES } from './ticket.service.js';
+import { getTickets } from './ticket.service.js';
 import type {
   ProcessedTicket,
   MetricsSummary,
@@ -14,8 +14,6 @@ import type {
 /**
  * Port of the metrics computation from backend/routes/tickets.py.
  */
-
-const BUG_TYPES = new Set(['bug', 'defect']);
 
 /** Default metrics shown by persona in priority order (team-level KPIs). */
 export const PERSONA_DEFAULT_METRICS: Record<Persona, { visible: string[]; hidden: string[] }> = {
@@ -75,6 +73,7 @@ function computeMetrics(tickets: ProcessedTicket[]): {
   }
 
   const cfg = getConfig();
+  const bugSet = new Set((cfg.bug_type_names ?? ['bug', 'defect']).map(s => s.toLowerCase()));
   const totalTickets = tickets.length;
   const totalSp = tickets.reduce((s, t) => s + (t.story_points ?? 0), 0);
   const totalEngHours = tickets.reduce((s, t) => s + (t.eng_hours ?? 0), 0);
@@ -93,7 +92,7 @@ function computeMetrics(tickets: ProcessedTicket[]): {
       ? Math.round((ticketsWithHours.reduce((s, t) => s + t.eng_hours!, 0) / ticketsWithHours.length) * 10) / 10
       : null;
 
-  const bugs = tickets.filter((t) => BUG_TYPES.has((t.issue_type ?? '').toLowerCase()));
+  const bugs = tickets.filter((t) => bugSet.has((t.issue_type ?? '').toLowerCase()));
   const bugCount = bugs.length;
   const bugEngHours = bugs.reduce((s, t) => s + (t.eng_hours ?? 0), 0);
 
@@ -196,6 +195,8 @@ export function getTeamMetrics(period = 'all', projectKey?: string): TeamMetrics
   const { summary: prevSummary, byBu: prevByBu, byWs: prevByWs, byType: prevByType } = computeMetrics(prevTickets);
 
   // Monthly trend (always from all tickets)
+  const cfg = getConfig();
+  const bugSetForTrend = new Set((cfg.bug_type_names ?? ['bug', 'defect']).map(s => s.toLowerCase()));
   const monthly: Record<string, { tickets: number; story_points: number; eng_hours: number; bug_count: number }> = {};
   for (const t of allTickets) {
     if (!t.resolved) continue;
@@ -204,7 +205,7 @@ export function getTeamMetrics(period = 'all', projectKey?: string): TeamMetrics
     monthly[monthKey].tickets += 1;
     monthly[monthKey].story_points += t.story_points ?? 0;
     monthly[monthKey].eng_hours += t.eng_hours ?? 0;
-    if (BUG_TYPES.has((t.issue_type ?? '').toLowerCase())) {
+    if (bugSetForTrend.has((t.issue_type ?? '').toLowerCase())) {
       monthly[monthKey].bug_count += 1;
     }
   }
@@ -249,6 +250,8 @@ function computeIndividualSummary(tickets: ProcessedTicket[]): IndividualSummary
   }
 
   const cfg = getConfig();
+  const bugSet = new Set((cfg.bug_type_names ?? ['bug', 'defect']).map(s => s.toLowerCase()));
+  const productWsSet = new Set((cfg.product_work_stream_names ?? ['product']).map(s => s.toLowerCase()));
   const totalTickets = tickets.length;
   const totalSp = tickets.reduce((s, t) => s + (t.story_points ?? 0), 0);
   const totalEngHours = tickets.reduce((s, t) => s + (t.eng_hours ?? 0), 0);
@@ -267,13 +270,13 @@ function computeIndividualSummary(tickets: ProcessedTicket[]): IndividualSummary
   const hoursPerSp = cfg.sp_to_days * 8;
   const estimationAccuracy = pairedHours > 0 ? Math.round(((pairedSp * hoursPerSp) / pairedHours) * 100) / 100 : null;
 
-  const bugs = tickets.filter((t) => BUG_TYPES.has((t.issue_type ?? '').toLowerCase()));
+  const bugs = tickets.filter((t) => bugSet.has((t.issue_type ?? '').toLowerCase()));
   const bugRatio = totalTickets > 0 ? Math.round((bugs.length / totalTickets) * 100) / 100 : 0;
 
   const ticketsWithSp = tickets.filter((t) => t.story_points);
   const complexityScore = ticketsWithSp.length > 0 ? Math.round((totalSp / ticketsWithSp.length) * 10) / 10 : null;
 
-  const productTickets = tickets.filter((t) => (t.work_stream ?? '').toLowerCase() === 'product');
+  const productTickets = tickets.filter((t) => productWsSet.has((t.work_stream ?? '').toLowerCase()));
   const focusRatio = totalTickets > 0 ? Math.round((productTickets.length / totalTickets) * 100) / 100 : null;
 
   return {

@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mock ticket service
 vi.mock('../../src/main/services/ticket.service.js', () => ({
   getAllTickets: vi.fn(() => []),
-  FINAL_STATUSES: ['Done', 'Resolved', 'Closed'],
 }));
 
 // Mock timeline service
@@ -15,6 +14,10 @@ vi.mock('../../src/main/services/timeline.service.js', () => ({
 vi.mock('../../src/main/services/config.service.js', () => ({
   getConfig: vi.fn(() => ({
     aging_thresholds: { warning_days: 5, critical_days: 10, escalation_days: 15 },
+    done_statuses: ['Done', 'Resolved', 'Closed'],
+    blocked_statuses: ['Blocked'],
+    active_statuses: ['In Progress', 'Code Review', 'QA'],
+    bug_type_names: ['bug', 'defect'],
   })),
 }));
 
@@ -81,6 +84,10 @@ describe('epic.service', () => {
     mockGetTimelines.mockReturnValue([]);
     mockGetConfig.mockReturnValue({
       aging_thresholds: { warning_days: 5, critical_days: 10, escalation_days: 15 },
+      done_statuses: ['Done', 'Resolved', 'Closed'],
+      blocked_statuses: ['Blocked'],
+      active_statuses: ['In Progress', 'Code Review', 'QA'],
+      bug_type_names: ['bug', 'defect'],
     } as any);
   });
 
@@ -379,7 +386,12 @@ describe('epic.service', () => {
     });
 
     it('defaults agingThresholdDays to 5 when no config', () => {
-      mockGetConfig.mockReturnValue({} as any);
+      mockGetConfig.mockReturnValue({
+        done_statuses: ['Done', 'Resolved', 'Closed'],
+        blocked_statuses: ['Blocked'],
+        active_statuses: ['In Progress', 'Code Review', 'QA'],
+        bug_type_names: ['bug', 'defect'],
+      } as any);
       mockGetAllTickets.mockReturnValue([
         makeTicket({ key: 'T-1', parent_key: 'EPIC-1', parent_summary: 'E', status: 'In Progress' }),
       ]);

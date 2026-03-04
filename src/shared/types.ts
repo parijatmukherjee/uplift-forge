@@ -115,6 +115,11 @@ export interface AppConfig {
   personal_goals?: Record<string, number>;
   opt_in_team_comparison?: boolean;
   seniority_field_id?: string;
+  bug_type_names?: string[];
+  product_type_names?: string[];
+  tech_debt_label_names?: string[];
+  review_status_keywords?: string[];
+  product_work_stream_names?: string[];
 }
 
 export interface ProcessedTicket {
@@ -244,6 +249,11 @@ export interface JiraField {
   id: string;
   name: string;
   type: string;
+}
+
+export interface JiraFieldOption {
+  id: string;
+  value: string;
 }
 
 export interface JiraStatus {

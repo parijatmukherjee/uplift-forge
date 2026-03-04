@@ -6,10 +6,12 @@
 - **Use playful emojis in docs**: All documentation files (README.md, CLAUDE.md, USER_GUIDE.md) should use playful emojis throughout. Explicitly requested by the user.
 - **Makefile is the primary developer interface**: All commands in docs must use `make` targets, NOT raw `npm` commands. The Makefile wraps all npm scripts and is the single entry point for developers and end-users. When adding new npm scripts, always add a corresponding Makefile target. Explicitly requested by the user.
 - **Memory lives in repo**: The memory folder must reside at `.claude/memory/` inside the repository, not the external Claude projects path.
+- **Save to memory before starting work**: Whenever starting work on a new task/feature, first save what you're working on in memory. This ensures continuity across sessions. Explicitly requested by the user.
+- **Track work status in memory**: Always keep the "Current Work" section up to date — add it when starting a task, update progress during work, and move it to "Completed" when done. This ensures continuity and avoids repeated context-gathering across sessions. Explicitly requested by the user.
 
 ## Project State
 - Branch `feat/e2e-tests`: Multi-project cross-project support fully implemented (all 6 phases complete)
-- 565 tests across 25 suites (all passing)
+- 690 tests across 33 suites (all passing)
 - Product spec exists at `PRODUCT_SPEC.md` in project root
 - Per-project ticket caches implemented in `ticket.service.ts` (project-keyed Map of Maps)
 - Management persona gets all 6 tabs with cross-project aggregation
@@ -22,6 +24,20 @@
 - DM: 1-N projects (org-wide flow view), cross-project aggregation on DM-specific metrics
 - IC: 1 project, self-only metrics, private by default
 - See `PRODUCT_SPEC.md` and `.claude/memory/data-model.md` for full details
+
+## Completed: JIRA Field Options for Dropdowns
+- `jira.service.ts:getFieldOptions(fieldId)` fetches allowed values via `/field/{fieldId}/context` + `/context/{id}/option` endpoints (paginated, deduped, disabled excluded)
+- IPC channel `JIRA_FIELD_OPTIONS` wired through preload → api.ts
+- `EngineeringAttribution.tsx` fetches options on mount using `field_ids.tpd_bu` and `field_ids.work_stream` from config
+- `TicketTable.tsx` TPD BU changed from text input to `<select>` dropdown; both dropdowns prefer JIRA field options, fall back to mapping rules + ticket data
+- `JiraFieldOption` type added to `shared/types.ts`
+
+## Config-Driven Values Rule
+- **Never hardcode JIRA statuses, issue types, field values, or labels** in service/component code. All such values must come from `AppConfig`. Only `config.service.ts` defaults may contain literal values.
+- 5 new config fields: `bug_type_names`, `product_type_names`, `tech_debt_label_names`, `review_status_keywords`, `product_work_stream_names`
+- All matching is **case-insensitive** (`.toLowerCase()` everywhere)
+- Frontend status coloring uses `src/renderer/helpers/status-colors.ts` helper, driven by `done_statuses` + `blocked_statuses` from config
+- TicketTable dropdown options prefer JIRA field allowed values (fetched via `getFieldOptions`), falling back to `mapping_rules` + existing ticket data
 
 ## Data Architecture Decisions
 - Raw JIRA data already contains everything needed (`fields: '*all'`, `expand: 'changelog'`)

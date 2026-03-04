@@ -10,9 +10,6 @@ import type {
   TicketTimeline,
 } from '../../shared/types.js';
 
-const BUG_TYPES = new Set(['bug', 'defect']);
-const TECH_DEBT_LABELS = new Set(['tech-debt', 'technical-debt', 'debt', 'maintenance']);
-
 /**
  * Management Org Metrics — cross-project throughput, cycle time,
  * bug escape rate, tech debt ratio, flow efficiency, headcount-normalized throughput.
@@ -21,6 +18,8 @@ const TECH_DEBT_LABELS = new Set(['tech-debt', 'technical-debt', 'debt', 'mainte
  */
 export function getCtoOrgMetrics(period: string): CtoOrgMetricsResponse {
   const cfg = getConfig();
+  const bugSet = new Set((cfg.bug_type_names ?? ['bug', 'defect']).map(s => s.toLowerCase()));
+  const techDebtSet = new Set((cfg.tech_debt_label_names ?? ['tech-debt', 'technical-debt', 'debt', 'maintenance']).map(s => s.toLowerCase()));
   const projects = listProjects();
   const traces: Record<string, string> = {};
 
@@ -84,14 +83,14 @@ export function getCtoOrgMetrics(period: string): CtoOrgMetricsResponse {
   const totalStoryPoints = uniqueTickets.reduce((sum, t) => sum + (t.story_points ?? 0), 0);
 
   // Bug escape rate
-  const bugCount = uniqueTickets.filter(t => BUG_TYPES.has(t.issue_type.toLowerCase())).length;
-  const storyCount = uniqueTickets.filter(t => !BUG_TYPES.has(t.issue_type.toLowerCase())).length;
+  const bugCount = uniqueTickets.filter(t => bugSet.has(t.issue_type.toLowerCase())).length;
+  const storyCount = uniqueTickets.filter(t => !bugSet.has(t.issue_type.toLowerCase())).length;
   const bugEscapeRate = storyCount > 0 ? bugCount / storyCount : 0;
 
   // Tech debt ratio: bugs + tech-debt-labeled tickets vs total
   const techDebtCount = uniqueTickets.filter(t => {
-    if (BUG_TYPES.has(t.issue_type.toLowerCase())) return true;
-    if (t.labels && t.labels.some(l => TECH_DEBT_LABELS.has(l.toLowerCase()))) return true;
+    if (bugSet.has(t.issue_type.toLowerCase())) return true;
+    if (t.labels && t.labels.some(l => techDebtSet.has(l.toLowerCase()))) return true;
     return false;
   }).length;
   const techDebtRatio = totalTickets > 0 ? techDebtCount / totalTickets : 0;

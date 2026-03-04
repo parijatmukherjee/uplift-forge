@@ -3,9 +3,9 @@ import { RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import TicketTable from '../components/TicketTable';
 import TicketSummary from '../components/TicketSummary';
-import { getTickets, triggerSync, syncAllProjects } from '../api';
+import { getTickets, triggerSync, syncAllProjects, getConfig, getJiraFieldOptions } from '../api';
 import type { ProjectInfo } from '../App';
-import type { Persona } from '../../shared/types';
+import type { Persona, MappingRules } from '../../shared/types';
 
 export type MissingFilter = 'tpd_bu' | 'eng_hours' | 'work_stream' | null;
 
@@ -23,6 +23,10 @@ const EngineeringAttribution: React.FC<EngineeringAttributionProps> = ({ refresh
   const [syncing, setSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [missingFilter, setMissingFilter] = useState<MissingFilter>(null);
+  const [statusConfig, setStatusConfig] = useState<{ done: string[]; blocked: string[] }>({ done: [], blocked: [] });
+  const [mappingRules, setMappingRules] = useState<MappingRules>({ tpd_bu: {}, work_stream: {} });
+  const [tpdBuOptions, setTpdBuOptions] = useState<string[]>([]);
+  const [workStreamOptions, setWorkStreamOptions] = useState<string[]>([]);
 
   // Load tickets from backend cache (fast, no JIRA call)
   const fetchTickets = useCallback(async () => {
@@ -58,9 +62,28 @@ const EngineeringAttribution: React.FC<EngineeringAttributionProps> = ({ refresh
     }
   }, [isMultiProject]);
 
-  // On mount: load from cache only (no JIRA call)
+  // On mount: load from cache and fetch config + field options
   useEffect(() => {
     fetchTickets();
+    getConfig().then(res => {
+      const cfg = res.data;
+      setStatusConfig({ done: cfg.done_statuses ?? [], blocked: cfg.blocked_statuses ?? [] });
+      setMappingRules(cfg.mapping_rules ?? { tpd_bu: {}, work_stream: {} });
+
+      // Fetch JIRA field options for TPD BU and Work Stream dropdowns
+      const tpdBuFieldId = cfg.field_ids?.tpd_bu;
+      const workStreamFieldId = cfg.field_ids?.work_stream;
+      if (tpdBuFieldId) {
+        getJiraFieldOptions(tpdBuFieldId)
+          .then(r => setTpdBuOptions(r.data.map((o: { value: string }) => o.value)))
+          .catch(() => {});
+      }
+      if (workStreamFieldId) {
+        getJiraFieldOptions(workStreamFieldId)
+          .then(r => setWorkStreamOptions(r.data.map((o: { value: string }) => o.value)))
+          .catch(() => {});
+      }
+    }).catch(() => {});
   }, [fetchTickets]);
 
   // When config is saved (refreshKey changes): full sync
@@ -106,8 +129,8 @@ const EngineeringAttribution: React.FC<EngineeringAttributionProps> = ({ refresh
           </div>
         ) : (
           <>
-            <TicketTable tickets={tickets} onUpdate={fetchTickets} missingFilter={missingFilter} onClearFilter={() => setMissingFilter(null)} />
-            <TicketSummary tickets={tickets} activeFilter={missingFilter} onFilterChange={setMissingFilter} />
+            <TicketTable tickets={tickets} onUpdate={fetchTickets} missingFilter={missingFilter} onClearFilter={() => setMissingFilter(null)} statusConfig={statusConfig} mappingRules={mappingRules} tpdBuOptions={tpdBuOptions} workStreamOptions={workStreamOptions} />
+            <TicketSummary tickets={tickets} activeFilter={missingFilter} onFilterChange={setMissingFilter} statusConfig={statusConfig} />
           </>
         )}
       </div>

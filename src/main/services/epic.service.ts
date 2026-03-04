@@ -1,9 +1,7 @@
-import { getAllTickets, FINAL_STATUSES } from './ticket.service.js';
+import { getAllTickets } from './ticket.service.js';
 import { getTimelines } from './timeline.service.js';
 import { getConfig } from './config.service.js';
 import type { ProcessedTicket, EpicSummary, TicketTimeline } from '../../shared/types.js';
-
-const BUG_TYPES = new Set(['bug', 'defect']);
 
 /**
  * Group tickets by parent_key and compute epic summaries with timeline-based risk scores.
@@ -11,6 +9,9 @@ const BUG_TYPES = new Set(['bug', 'defect']);
 export function getEpicSummaries(projectKey?: string): EpicSummary[] {
   const allTickets = getAllTickets(projectKey);
   const cfg = getConfig();
+  const doneSet = new Set(cfg.done_statuses.map(s => s.toLowerCase()));
+  const bugSet = new Set((cfg.bug_type_names ?? ['bug', 'defect']).map(s => s.toLowerCase()));
+  const blockedSet = new Set(cfg.blocked_statuses.map(s => s.toLowerCase()));
   const agingThresholdDays = cfg.aging_thresholds?.warning_days ?? 5;
 
   // Build timeline map for timeline-based risk scoring
@@ -39,8 +40,8 @@ export function getEpicSummaries(projectKey?: string): EpicSummary[] {
   for (const [key, { summary, tickets }] of epicMap) {
     if (tickets.length === 0) continue;
 
-    const resolved = tickets.filter(t => FINAL_STATUSES.includes(t.status));
-    const inProgress = tickets.filter(t => !FINAL_STATUSES.includes(t.status));
+    const resolved = tickets.filter(t => doneSet.has(t.status.toLowerCase()));
+    const inProgress = tickets.filter(t => !doneSet.has(t.status.toLowerCase()));
     const totalSP = tickets.reduce((s, t) => s + (t.story_points ?? 0), 0);
     const resolvedSP = resolved.reduce((s, t) => s + (t.story_points ?? 0), 0);
     const progressPct = tickets.length > 0 ? Math.round((resolved.length / tickets.length) * 100) / 100 : 0;
@@ -84,6 +85,7 @@ export function getEpicSummaries(projectKey?: string): EpicSummary[] {
     // Risk score computation using timeline data
     const { riskScore, riskFactors } = computeRisk(
       tickets, resolved, avgCycleTime, progressPct, timelineMap, agingThresholdDays,
+      doneSet, bugSet, blockedSet,
     );
     const riskLevel = riskScore <= 0.3 ? 'low' : riskScore <= 0.6 ? 'medium' : 'high';
 
@@ -140,12 +142,15 @@ function computeRisk(
   progressPct: number,
   timelineMap: Map<string, TicketTimeline>,
   agingThresholdDays: number,
+  doneSet: Set<string>,
+  bugSet: Set<string>,
+  blockedSet: Set<string>,
 ): { riskScore: number; riskFactors: string[] } {
   const factors: string[] = [];
   const total = allTickets.length;
   if (total === 0) return { riskScore: 0, riskFactors: [] };
 
-  const nonFinal = allTickets.filter(t => !FINAL_STATUSES.includes(t.status));
+  const nonFinal = allTickets.filter(t => !doneSet.has(t.status.toLowerCase()));
 
   // 1. Progress factor (weight: 0.25)
   const progressFactor = (1 - progressPct) * 0.25;
@@ -180,7 +185,7 @@ function computeRisk(
       return tl.blockedTimeHours > 0;
     }
     // Fallback to status string
-    return t.status.toLowerCase() === 'blocked';
+    return blockedSet.has(t.status.toLowerCase());
   });
   const blockedRatio = blocked.length / total;
   const blockedFactor = blockedRatio * 0.15;
@@ -189,7 +194,7 @@ function computeRisk(
   }
 
   // 4. Bug factor (weight: 0.10)
-  const bugs = allTickets.filter(t => BUG_TYPES.has((t.issue_type ?? '').toLowerCase()));
+  const bugs = allTickets.filter(t => bugSet.has((t.issue_type ?? '').toLowerCase()));
   const bugRatio = bugs.length / total;
   const bugFactor = bugRatio * 0.10;
   if (bugRatio > 0.2) {
@@ -219,7 +224,7 @@ function computeRisk(
   }
 
   // 7. Reopen factor (weight: 0.10) — tickets resolved but back to non-final
-  const reopened = allTickets.filter(t => t.resolved && !FINAL_STATUSES.includes(t.status));
+  const reopened = allTickets.filter(t => t.resolved && !doneSet.has(t.status.toLowerCase()));
   const reopenRatio = reopened.length / total;
   const reopenFactor = reopenRatio * 0.10;
   if (reopened.length > 0) {

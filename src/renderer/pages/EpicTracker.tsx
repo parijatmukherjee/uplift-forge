@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, AlertTriangle, CheckCircle, Clock, ChevronDown, ChevronRight, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { listEpics, syncEpics, getAiConfig, getAiSuggestions, syncAllProjects } from '../api';
+import { listEpics, syncEpics, getAiConfig, getAiSuggestions, syncAllProjects, getConfig } from '../api';
+import { getStatusColor } from '../helpers/status-colors';
 import type { ProjectInfo } from '../App';
 import type { EpicSummary, AiProvider, Persona } from '../../shared/types';
 
@@ -28,6 +29,8 @@ const EpicTracker: React.FC<EpicTrackerProps> = ({ refreshKey, project, persona,
   const [aiProvider, setAiProvider] = useState<AiProvider>('openai');
   const [aiLoading, setAiLoading] = useState<string | null>(null);
   const [aiSuggestions, setAiSuggestions] = useState<Record<string, string[]>>({});
+  const [doneStatuses, setDoneStatuses] = useState<string[]>(['Done', 'Resolved', 'Closed', 'Rejected', 'Cancelled']);
+  const [blockedStatuses, setBlockedStatuses] = useState<string[]>(['Blocked']);
 
   const fetchEpics = useCallback(async () => {
     setLoading(true);
@@ -72,6 +75,11 @@ const EpicTracker: React.FC<EpicTrackerProps> = ({ refreshKey, project, persona,
     }).catch((err) => {
       console.error('[EpicTracker] Failed to load AI config:', err);
     });
+    getConfig().then(res => {
+      const cfg = res.data;
+      if (cfg.done_statuses) setDoneStatuses(cfg.done_statuses);
+      if (cfg.blocked_statuses) setBlockedStatuses(cfg.blocked_statuses);
+    }).catch(() => {});
   }, []);
 
   const handleAiSuggest = useCallback(async (epic: EpicSummary) => {
@@ -245,9 +253,7 @@ const EpicTracker: React.FC<EpicTrackerProps> = ({ refreshKey, project, persona,
                                   <td className="px-3 py-2 text-slate-300 truncate max-w-[200px]">{ticket.summary}</td>
                                   <td className="px-3 py-2">
                                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                                      ticket.status === 'Done' || ticket.status === 'Resolved' ? 'bg-emerald-500/15 text-emerald-400' :
-                                      ticket.status === 'Blocked' ? 'bg-rose-500/15 text-rose-400' :
-                                      'bg-slate-700/50 text-slate-400'
+                                      getStatusColor(ticket.status, doneStatuses, blockedStatuses)
                                     }`}>
                                       {ticket.status}
                                     </span>
