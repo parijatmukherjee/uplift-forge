@@ -18,8 +18,6 @@ out/
 # Test / Coverage
 coverage/
 .vitest-cache/
-test-results/
-e2e-report/
 
 # Logs
 *.log
@@ -35,5 +33,5 @@ Thumbs.db
 *.swp
 *.swo
 
-# Gemini Code (keep .gemini/memory/ tracked)
-.gemini/settings.local.json
+# Claude Code (keep .claude/memory/ tracked)
+.claude/settings.local.json

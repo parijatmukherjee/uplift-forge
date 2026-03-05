@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import { getStatusDotColor } from '../helpers/status-colors';
 import type { MissingFilter } from '../pages/EngineeringAttribution';
 
 interface Ticket {
@@ -18,13 +17,17 @@ interface TicketSummaryProps {
   tickets: Ticket[];
   activeFilter: MissingFilter;
   onFilterChange: (filter: MissingFilter) => void;
-  statusConfig?: { done: string[]; blocked: string[] };
 }
 
-const defaultDoneStatuses = ['Done', 'Resolved', 'Closed', 'Rejected', 'Cancelled'];
-const defaultBlockedStatuses = ['Blocked'];
+const statusDotColors: Record<string, string> = {
+  'Done': 'bg-emerald-400',
+  'Closed': 'bg-emerald-400',
+  'Resolved': 'bg-emerald-400',
+  'Rejected': 'bg-rose-400',
+  'Cancelled': 'bg-rose-400',
+};
 
-const TicketSummary: React.FC<TicketSummaryProps> = ({ tickets, activeFilter, onFilterChange, statusConfig }) => {
+const TicketSummary: React.FC<TicketSummaryProps> = ({ tickets, activeFilter, onFilterChange }) => {
   const stats = useMemo(() => {
     const total = tickets.length;
 
@@ -65,7 +68,7 @@ const TicketSummary: React.FC<TicketSummaryProps> = ({ tickets, activeFilter, on
             .sort(([, a], [, b]) => b - a)
             .map(([status, count]) => (
               <div key={status} className="flex items-center gap-1.5">
-                <span className={`w-2 h-2 rounded-full ${getStatusDotColor(status, statusConfig?.done ?? defaultDoneStatuses, statusConfig?.blocked ?? defaultBlockedStatuses)}`} />
+                <span className={`w-2 h-2 rounded-full ${statusDotColors[status] || 'bg-sky-400'}`} />
                 <span className="text-slate-400">{status}</span>
                 <span className="text-slate-200 font-semibold tabular-nums">{count}</span>
               </div>

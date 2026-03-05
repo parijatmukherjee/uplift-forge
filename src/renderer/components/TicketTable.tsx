@@ -2,9 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Save, ExternalLink, RefreshCw, Calculator, ArrowUp, ArrowDown, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { updateTicket, syncSingleTicket, calculateHours, calculateFields } from '../api';
-import { getStatusColor } from '../helpers/status-colors';
 import type { MissingFilter } from '../pages/EngineeringAttribution';
-import type { MappingRules } from '../../shared/types';
 
 type SortDirection = 'asc' | 'desc';
 interface SortState {
@@ -29,14 +27,16 @@ interface TicketTableProps {
   onUpdate: () => void;
   missingFilter: MissingFilter;
   onClearFilter: () => void;
-  statusConfig?: { done: string[]; blocked: string[] };
-  mappingRules?: MappingRules;
-  tpdBuOptions?: string[];
-  workStreamOptions?: string[];
 }
 
-const defaultDoneStatuses = ['Done', 'Resolved', 'Closed', 'Rejected', 'Cancelled'];
-const defaultBlockedStatuses = ['Blocked'];
+const statusColors: Record<string, string> = {
+  'Done': 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/30',
+  'Closed': 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/30',
+  'Resolved': 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/30',
+  'Rejected': 'bg-rose-500/15 text-rose-300 ring-rose-400/30',
+  'Cancelled': 'bg-rose-500/15 text-rose-300 ring-rose-400/30',
+};
+const defaultStatusColor = 'bg-sky-500/15 text-sky-300 ring-sky-400/30';
 
 const filterLabels: Record<string, string> = {
   tpd_bu: 'TPD BU',
@@ -44,7 +44,7 @@ const filterLabels: Record<string, string> = {
   work_stream: 'Work Stream',
 };
 
-const TicketTable: React.FC<TicketTableProps> = ({ tickets, onUpdate, missingFilter, onClearFilter, statusConfig, mappingRules, tpdBuOptions: tpdBuOptionsProp, workStreamOptions: workStreamOptionsProp }) => {
+const TicketTable: React.FC<TicketTableProps> = ({ tickets, onUpdate, missingFilter, onClearFilter }) => {
   const [editing, setEditing] = useState<Record<string, Partial<Ticket>>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [syncingRow, setSyncingRow] = useState<string | null>(null);
@@ -82,22 +82,6 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onUpdate, missingFil
     setSort({ column: null, direction: 'asc' });
     setCurrentPage(1);
   }, []);
-
-  // TPD BU options: prefer JIRA field options, fall back to mapping rules + ticket data
-  const tpdBuOptions = useMemo(() => {
-    if (tpdBuOptionsProp && tpdBuOptionsProp.length > 0) return tpdBuOptionsProp;
-    const fromRules = Object.keys(mappingRules?.tpd_bu ?? {});
-    const fromTickets = tickets.map(t => t.tpd_bu).filter(Boolean) as string[];
-    return [...new Set([...fromRules, ...fromTickets])].sort();
-  }, [tpdBuOptionsProp, mappingRules, tickets]);
-
-  // Work Stream options: prefer JIRA field options, fall back to mapping rules + ticket data
-  const workStreamOptions = useMemo(() => {
-    if (workStreamOptionsProp && workStreamOptionsProp.length > 0) return workStreamOptionsProp;
-    const fromRules = Object.keys(mappingRules?.work_stream ?? {});
-    const fromTickets = tickets.map(t => t.work_stream).filter(Boolean) as string[];
-    return [...new Set([...fromRules, ...fromTickets])].sort();
-  }, [workStreamOptionsProp, mappingRules, tickets]);
 
   // Reset to page 1 when filter changes
   useEffect(() => {
@@ -453,7 +437,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onUpdate, missingFil
 
                   {/* Status */}
                   <td className="px-4 py-2.5 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ring-1 ring-inset ${getStatusColor(ticket.status, statusConfig?.done ?? defaultDoneStatuses, statusConfig?.blocked ?? defaultBlockedStatuses)}`}>
+                    <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ring-1 ring-inset ${statusColors[ticket.status] || defaultStatusColor}`}>
                       {ticket.status}
                     </span>
                   </td>
@@ -470,9 +454,12 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onUpdate, missingFil
                         onChange={(e) => handleFieldChange(ticket.key, 'tpd_bu', e.target.value)}
                       >
                         <option value="">Not set</option>
-                        {tpdBuOptions.map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
+                        <option value="B2C">B2C</option>
+                        <option value="B2B">B2B</option>
+                        <option value="Global Expansion">Global Expansion</option>
+                        <option value="O4B">O4B</option>
+                        <option value="Rome2Rio">Rome2Rio</option>
+                        <option value="Omio.AI">Omio.AI</option>
                       </select>
                       <CalcButton
                         onClick={() => handleCalculateFields(ticket.key, 'tpd_bu')}
@@ -510,9 +497,9 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onUpdate, missingFil
                         onChange={(e) => handleFieldChange(ticket.key, 'work_stream', e.target.value)}
                       >
                         <option value="">Not set</option>
-                        {workStreamOptions.map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
+                        <option value="Operational">Operational</option>
+                        <option value="Product">Product</option>
+                        <option value="Tech Meta Backlog">Tech Meta Backlog</option>
                       </select>
                       <CalcButton
                         onClick={() => handleCalculateFields(ticket.key, 'work_stream')}
