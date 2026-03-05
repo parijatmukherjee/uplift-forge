@@ -9,10 +9,9 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { JiraMockServer } from './jira-mock-server';
 
-const APP_EXECUTABLE = join(
-  __dirname,
-  '../../out/Uplift Forge-darwin-arm64/Uplift Forge.app/Contents/MacOS/uplift-forge',
-);
+const APP_EXECUTABLE = process.platform === 'darwin'
+  ? join(__dirname, '../../out/Uplift Forge-darwin-arm64/Uplift Forge.app/Contents/MacOS/uplift-forge')
+  : join(__dirname, '../../out/uplift-forge-linux-x64/uplift-forge');
 
 export interface TestFixtures {
   userDataDir: string;
@@ -45,7 +44,7 @@ export const test = base.extend<TestFixtures>({
   electronApp: async ({ userDataDir }, use) => {
     const app = await _electron.launch({
       executablePath: APP_EXECUTABLE,
-      args: [`--user-data-dir=${userDataDir}`],
+      args: [`--user-data-dir=${userDataDir}`, '--headless'],
       env: {
         ...process.env,
         NODE_ENV: 'test',
