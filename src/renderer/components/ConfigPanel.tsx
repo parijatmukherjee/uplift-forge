@@ -114,15 +114,19 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ onConfigSaved }) => {
         getJiraFields(),
         getJiraStatuses(),
       ]);
-      if (!fieldsRes.data.error) {
-        setJiraFields(fieldsRes.data.sort((a: any, b: any) => a.name.localeCompare(b.name)));
+      if (fieldsRes.data.error) {
+        throw new Error(fieldsRes.data.error);
       }
-      if (!statusesRes.data.error) {
-        setJiraStatuses(statusesRes.data);
+      if (statusesRes.data.error) {
+        throw new Error(statusesRes.data.error);
       }
+      setJiraFields(fieldsRes.data.sort((a: any, b: any) => a.name.localeCompare(b.name)));
+      setJiraStatuses(statusesRes.data);
       setFieldsFetched(true);
     } catch (err) {
       console.error('Failed to fetch JIRA fields/statuses', err);
+      setLoadError(true);
+      throw err;
     } finally {
       setFetchingFields(false);
     }

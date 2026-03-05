@@ -23,9 +23,16 @@ import type { AuthState, AiProvider, AiSuggestRequest, ProjectConfig } from '../
 export function registerIpcHandlers(): void {
   // ----- Auth -----
   ipcMain.handle(Channels.AUTH_LOGIN, async (_event, baseUrl: string, email: string, apiToken: string) => {
-    saveCredentials(baseUrl, email, apiToken);
-    emitAuthStateChanged();
-    return { status: 'authenticated', email, baseUrl } as AuthState;
+    try {
+      await jiraService.verifyCredentials(baseUrl, email, apiToken);
+      saveCredentials(baseUrl, email, apiToken);
+      emitAuthStateChanged();
+      return { status: 'authenticated', email, baseUrl } as AuthState;
+    } catch (e) {
+      console.error('[Auth] Login failed:', e);
+      // Re-throw so the renderer receives the error message
+      throw e;
+    }
   });
 
   ipcMain.handle(Channels.AUTH_LOGOUT, () => {

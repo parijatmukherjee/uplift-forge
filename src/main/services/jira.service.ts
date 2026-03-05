@@ -8,9 +8,12 @@ import type { JiraField, JiraStatus, JiraMember, ProjectInfo } from '../../share
  *   {baseUrl}/rest/api/3/...
  */
 
-async function jiraFetch(path: string, options: RequestInit = {}): Promise<Response> {
-  const authHeader = getAuthHeader();
-  const baseUrl = getBaseUrl();
+async function jiraFetch(path: string, options: RequestInit = {}, overrideCreds?: { baseUrl: string, email: string, apiToken: string }): Promise<Response> {
+  const authHeader = overrideCreds 
+    ? `Basic ${Buffer.from(`${overrideCreds.email}:${overrideCreds.apiToken}`).toString('base64')}`
+    : getAuthHeader();
+  const baseUrl = overrideCreds ? overrideCreds.baseUrl : getBaseUrl();
+
   if (!authHeader || !baseUrl) {
     throw new Error('Not authenticated — no credentials configured');
   }
@@ -28,9 +31,25 @@ async function jiraFetch(path: string, options: RequestInit = {}): Promise<Respo
   });
 
   if (!response.ok) {
-    throw new Error(`JIRA API error ${response.status}: ${await response.text()}`);
+    let errorMessage = `JIRA API error ${response.status}`;
+    try {
+      const errorText = await response.text();
+      if (errorText) {
+        errorMessage += `: ${errorText}`;
+      }
+    } catch (e) {
+      // Ignore text parsing errors
+    }
+    throw new Error(errorMessage);
   }
   return response;
+}
+
+/**
+ * Verify JIRA credentials by fetching the current user.
+ */
+export async function verifyCredentials(baseUrl: string, email: string, apiToken: string): Promise<void> {
+  await jiraFetch('/myself', {}, { baseUrl, email, apiToken });
 }
 
 /**
