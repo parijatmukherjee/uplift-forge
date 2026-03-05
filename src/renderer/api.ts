@@ -36,6 +36,7 @@ export const calculateFields = (key: string) => wrap(window.api.calculateFields(
 
 // Sync
 export const triggerSync = () => wrap(window.api.triggerSync());
+export const syncAllProjects = () => wrap(window.api.syncAllProjects());
 
 // Metrics
 export const getTeamMetrics = (period = 'all') => wrap(window.api.getTeamMetrics(period));

@@ -119,6 +119,10 @@ export function registerIpcHandlers(): void {
     return { status: 'success', count };
   });
 
+  ipcMain.handle(Channels.SYNC_ALL, async () => {
+    return ticketService.syncAllProjects();
+  });
+
   // ----- Metrics -----
   ipcMain.handle(Channels.METRICS_TEAM, (_event, period: string) => {
     return metricsService.getTeamMetrics(period);

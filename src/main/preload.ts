@@ -37,6 +37,7 @@ const api = {
 
   // Sync
   triggerSync: () => ipcRenderer.invoke(Channels.SYNC_FULL),
+  syncAllProjects: () => ipcRenderer.invoke(Channels.SYNC_ALL),
 
   // Metrics
   getTeamMetrics: (period: string) => ipcRenderer.invoke(Channels.METRICS_TEAM, period),

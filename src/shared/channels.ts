@@ -28,6 +28,7 @@ export const Channels = {
 
   // Sync
   SYNC_FULL: 'sync:full',
+  SYNC_ALL: 'sync:all',
   SYNC_PROGRESS: 'sync:progress',
 
   // Metrics
