@@ -31,15 +31,34 @@ async function jiraFetch(path: string, options: RequestInit = {}, overrideCreds?
   });
 
   if (!response.ok) {
-    let errorMessage = `JIRA API error ${response.status}`;
+    const status = response.status;
+    let errorMessage = `JIRA API error ${status}`;
+    
     try {
-      const errorText = await response.text();
-      if (errorText) {
-        errorMessage += `: ${errorText}`;
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const errorJson = await response.json() as { errorMessages?: string[], errors?: Record<string, string> };
+        if (errorJson.errorMessages && errorJson.errorMessages.length > 0) {
+          errorMessage += `: ${errorJson.errorMessages.join(', ')}`;
+        } else if (errorJson.errors) {
+          errorMessage += `: ${JSON.stringify(errorJson.errors)}`;
+        }
+      } else {
+        const text = await response.text();
+        if (text && text.trim().length > 0) {
+          // If it looks like HTML, don't dump the whole thing
+          if (text.trim().startsWith('<')) {
+            errorMessage += ' (received HTML response)';
+          } else {
+            const cleanText = text.replace(/\s+/g, ' ').trim();
+            errorMessage += `: ${cleanText.substring(0, 200)}${cleanText.length > 200 ? '...' : ''}`;
+          }
+        }
       }
     } catch (e) {
-      // Ignore text parsing errors
+      // Ignore parsing errors
     }
+    
     throw new Error(errorMessage);
   }
   return response;

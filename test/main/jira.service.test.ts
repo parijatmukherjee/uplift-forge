@@ -250,6 +250,7 @@ describe('jira.service', () => {
         ok: false,
         status: 401,
         text: async () => 'Unauthorized',
+        headers: new Map([['content-type', 'text/plain']]),
       }));
       
       await expect(verifyCredentials('https://test', 'a', 'b')).rejects.toThrow('JIRA API error 401: Unauthorized');
@@ -260,9 +261,47 @@ describe('jira.service', () => {
         ok: false,
         status: 500,
         text: async () => 'Server error',
+        headers: new Map([['content-type', 'text/plain']]),
       }));
       
       await expect(verifyCredentials('https://test', 'a', 'b')).rejects.toThrow('JIRA API error 500: Server error');
+    });
+
+    it('handles HTML error response without dumping full body', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        text: async () => '<html><body>Unauthorized</body></html>',
+        headers: new Map([['content-type', 'text/html']]),
+      }));
+      
+      await expect(verifyCredentials('https://test', 'a', 'b')).rejects.toThrow('JIRA API error 401 (received HTML response)');
+    });
+
+    it('truncates long text error responses', async () => {
+      const longText = 'A'.repeat(500);
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        text: async () => longText,
+        headers: new Map([['content-type', 'text/plain']]),
+      }));
+      
+      const error = await verifyCredentials('https://test', 'a', 'b').catch(e => e.message);
+      expect(error).toContain('JIRA API error 400');
+      expect(error.length).toBeLessThan(300);
+      expect(error).toContain('...');
+    });
+
+    it('parses JIRA JSON error messages', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ errorMessages: ['Validation failed', 'Missing field'] }),
+        headers: new Map([['content-type', 'application/json']]),
+      }));
+      
+      await expect(verifyCredentials('https://test', 'a', 'b')).rejects.toThrow('JIRA API error 400: Validation failed, Missing field');
     });
   });
 });
