@@ -1,4 +1,5 @@
 import { getAuthHeader, getBaseUrl } from '../auth/token-store.js';
+import { generateMockIssues } from './demo-data.service.js';
 import type { JiraField, JiraStatus, JiraMember, ProjectInfo } from '../../shared/types.js';
 
 /**
@@ -76,6 +77,11 @@ export async function verifyCredentials(baseUrl: string, email: string, apiToken
  * Fetch issues using JQL with pagination (nextPageToken/isLast).
  */
 export async function getIssues(projectKey: string, months?: number): Promise<unknown[]> {
+  const baseUrl = getBaseUrl();
+  if (baseUrl === 'https://demo.atlassian.net') {
+    return generateMockIssues(projectKey, 100);
+  }
+
   let jql = `project = "${projectKey}"`;
 
   if (months) {
@@ -158,6 +164,14 @@ export async function getIssueWithChangelog(issueKey: string): Promise<Record<st
  * Search issues by JQL (without changelog, for single-ticket lookups).
  */
 export async function searchIssues(jql: string): Promise<unknown[]> {
+  const baseUrl = getBaseUrl();
+  if (baseUrl === 'https://demo.atlassian.net') {
+    // Try to extract project key from JQL if possible, or use APP
+    const match = jql.match(/project\s*=\s*["']?(\w+)["']?/i);
+    const proj = match ? match[1] : 'APP';
+    return generateMockIssues(proj, 5);
+  }
+
   const params = new URLSearchParams({ jql, fields: '*all', expand: 'changelog', maxResults: '10' });
   const response = await jiraFetch(`/search/jql?${params.toString()}`);
   const result = await response.json() as { issues?: unknown[] };
@@ -220,7 +234,7 @@ export async function getAllStatuses(): Promise<JiraStatus[]> {
   const result: JiraStatus[] = [];
 
   for (const s of statuses) {
-    if (!seen.has(s.name)) {
+    if (s.name && !seen.has(s.name)) {
       seen.add(s.name);
       result.push({ id: s.id, name: s.name });
     }
@@ -233,6 +247,16 @@ export async function getAllStatuses(): Promise<JiraStatus[]> {
  * Fetch project details (name, lead, avatar).
  */
 export async function getProject(projectKey: string): Promise<ProjectInfo> {
+  const baseUrl = getBaseUrl();
+  if (baseUrl === 'https://demo.atlassian.net') {
+    return {
+      key: projectKey,
+      name: projectKey === 'APP' ? 'Mobile App' : (projectKey === 'WEB' ? 'Web Platform' : projectKey),
+      lead: 'Demo Admin',
+      avatar: null,
+    };
+  }
+
   try {
     const response = await jiraFetch(`/project/${projectKey}`);
     const project = await response.json() as {

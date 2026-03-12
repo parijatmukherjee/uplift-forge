@@ -216,7 +216,7 @@ const CtoOrgDashboard: React.FC<CtoOrgDashboardProps> = ({ refreshKey, project, 
     : [];
 
   return (
-    <div className="flex flex-col h-full">
+    <div data-testid="cto-org-dashboard" className="flex flex-col h-full">
       {/* Header */}
       <div className="px-6 py-4 border-b border-slate-700/50 flex-shrink-0 flex items-center justify-between">
         <div>
@@ -285,11 +285,20 @@ const CtoOrgDashboard: React.FC<CtoOrgDashboardProps> = ({ refreshKey, project, 
                 />
               </div>
               <div className="animate-fade-in" style={{ animationDelay: '100ms' }}>
-                <div className="glass-card p-4 border bg-rose-500/10 border-rose-500/20">
+                <div className="glass-card p-4 border bg-rose-500/10 border-rose-500/20 group relative">
                   <div className="flex items-center gap-1.5 mb-2">
                     <Bug size={16} className="text-rose-400" />
                     <span className="text-xs text-slate-400 font-medium flex-1">Bug Escape Rate</span>
                     <CtoExplainButton label="Bug Escape Rate" derivation={TOOLTIPS.bugEscapeRate.derivation} dynamicDerivation={data.traces?.bugEscapeRate} />
+                    {aiConfigured && (
+                      <button
+                        onClick={() => openSuggestion('Bug Escape Rate', fmtPct(data.bugEscapeRate), TOOLTIPS.bugEscapeRate.description)}
+                        className="text-violet-400/40 hover:text-violet-400 transition-colors opacity-0 group-hover:opacity-100"
+                        aria-label="AI suggestions"
+                      >
+                        <Sparkles size={11} />
+                      </button>
+                    )}
                     <TrafficDot status={trafficLight('bugEscape', data.bugEscapeRate)} />
                   </div>
                   <p className="text-xl font-bold text-slate-100">{fmtPct(data.bugEscapeRate)}</p>
@@ -297,11 +306,20 @@ const CtoOrgDashboard: React.FC<CtoOrgDashboardProps> = ({ refreshKey, project, 
                 </div>
               </div>
               <div className="animate-fade-in" style={{ animationDelay: '200ms' }}>
-                <div className="glass-card p-4 border bg-amber-500/10 border-amber-500/20">
+                <div className="glass-card p-4 border bg-amber-500/10 border-amber-500/20 group relative">
                   <div className="flex items-center gap-1.5 mb-2">
                     <Wrench size={16} className="text-amber-400" />
                     <span className="text-xs text-slate-400 font-medium flex-1">Tech Debt Ratio</span>
                     <CtoExplainButton label="Tech Debt Ratio" derivation={TOOLTIPS.techDebtRatio.derivation} dynamicDerivation={data.traces?.techDebtRatio} />
+                    {aiConfigured && (
+                      <button
+                        onClick={() => openSuggestion('Tech Debt Ratio', fmtPct(data.techDebtRatio), TOOLTIPS.techDebtRatio.description)}
+                        className="text-violet-400/40 hover:text-violet-400 transition-colors opacity-0 group-hover:opacity-100"
+                        aria-label="AI suggestions"
+                      >
+                        <Sparkles size={11} />
+                      </button>
+                    )}
                     <TrafficDot status={trafficLight('techDebt', data.techDebtRatio)} />
                   </div>
                   <p className="text-xl font-bold text-slate-100">{fmtPct(data.techDebtRatio)}</p>
@@ -309,11 +327,20 @@ const CtoOrgDashboard: React.FC<CtoOrgDashboardProps> = ({ refreshKey, project, 
                 </div>
               </div>
               <div className="animate-fade-in" style={{ animationDelay: '300ms' }}>
-                <div className="glass-card p-4 border bg-emerald-500/10 border-emerald-500/20">
+                <div className="glass-card p-4 border bg-emerald-500/10 border-emerald-500/20 group relative">
                   <div className="flex items-center gap-1.5 mb-2">
                     <Zap size={16} className="text-emerald-400" />
                     <span className="text-xs text-slate-400 font-medium flex-1">Flow Efficiency</span>
                     <CtoExplainButton label="Flow Efficiency" derivation={TOOLTIPS.flowEfficiency.derivation} dynamicDerivation={data.traces?.flowEfficiency} />
+                    {aiConfigured && (
+                      <button
+                        onClick={() => openSuggestion('Flow Efficiency', `${data.flowEfficiency.average.toFixed(1)}%`, TOOLTIPS.flowEfficiency.description)}
+                        className="text-violet-400/40 hover:text-violet-400 transition-colors opacity-0 group-hover:opacity-100"
+                        aria-label="AI suggestions"
+                      >
+                        <Sparkles size={11} />
+                      </button>
+                    )}
                     <TrafficDot status={trafficLight('flowEfficiency', data.flowEfficiency.average)} />
                   </div>
                   <p className="text-xl font-bold text-slate-100">{data.flowEfficiency.average.toFixed(1)}%</p>

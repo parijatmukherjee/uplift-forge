@@ -226,7 +226,7 @@ const DmFlowDashboard: React.FC<DmFlowDashboardProps> = ({ refreshKey, project, 
   const CFD_COLORS = ['#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#64748b', '#14b8a6', '#f97316'];
 
   return (
-    <div className="flex flex-col h-full">
+    <div data-testid="dm-flow-dashboard" className="flex flex-col h-full">
       {/* Header */}
       <div className="px-6 py-4 border-b border-slate-700/50 flex-shrink-0 flex items-center justify-between">
         <div>

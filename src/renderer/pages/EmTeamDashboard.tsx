@@ -140,7 +140,7 @@ const EmTeamDashboard: React.FC<EmTeamDashboardProps> = ({ refreshKey, project, 
   }
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 overflow-y-auto custom-scrollbar">
+    <div data-testid="em-team-dashboard" className="flex flex-col h-full bg-slate-950 overflow-y-auto custom-scrollbar">
       {/* Header */}
       <div className="px-8 py-6 border-b border-slate-800/50 flex justify-between items-center bg-slate-900/20 backdrop-blur-sm sticky top-0 z-30">
         <div>
@@ -192,6 +192,7 @@ const EmTeamDashboard: React.FC<EmTeamDashboardProps> = ({ refreshKey, project, 
             icon={<ClipboardList size={20} />}
             tooltip={TOOLTIPS.totalTickets}
             dynamicDerivation={data?.traces?.totalTickets}
+            aiConfigured={aiConfigured}
             onAiSuggest={() => handleAiSuggest('totalTickets', 'Total Tickets', data?.totalTickets ?? 0, TOOLTIPS.totalTickets)}
           />
           <MetricCard
@@ -201,6 +202,7 @@ const EmTeamDashboard: React.FC<EmTeamDashboardProps> = ({ refreshKey, project, 
             icon={<Clock size={20} />}
             tooltip={TOOLTIPS.cycleTimeP50}
             dynamicDerivation={data?.traces?.cycleTimeP50}
+            aiConfigured={aiConfigured}
             onAiSuggest={() => handleAiSuggest('cycleTimeP50', 'Cycle Time p50', data?.cycleTime.p50 ?? 0, TOOLTIPS.cycleTimeP50)}
           />
           <MetricCard
@@ -210,6 +212,7 @@ const EmTeamDashboard: React.FC<EmTeamDashboardProps> = ({ refreshKey, project, 
             icon={<RotateCcw size={20} />}
             tooltip={TOOLTIPS.reworkRate}
             dynamicDerivation={data?.traces?.reworkRate}
+            aiConfigured={aiConfigured}
             onAiSuggest={() => handleAiSuggest('reworkRate', 'Rework Rate', data?.reworkRate ?? 0, TOOLTIPS.reworkRate)}
           />
           <MetricCard
@@ -219,6 +222,7 @@ const EmTeamDashboard: React.FC<EmTeamDashboardProps> = ({ refreshKey, project, 
             icon={<Target size={20} />}
             tooltip={TOOLTIPS.spAccuracy}
             dynamicDerivation={data?.traces?.spAccuracy}
+            aiConfigured={aiConfigured}
             onAiSuggest={() => handleAiSuggest('spAccuracy', 'SP Accuracy', data?.spAccuracy ?? 0, TOOLTIPS.spAccuracy)}
           />
           <MetricCard
@@ -228,6 +232,7 @@ const EmTeamDashboard: React.FC<EmTeamDashboardProps> = ({ refreshKey, project, 
             icon={<Timer size={20} />}
             tooltip={TOOLTIPS.avgReviewDuration}
             dynamicDerivation={data?.traces?.avgReviewDuration}
+            aiConfigured={aiConfigured}
             onAiSuggest={() => handleAiSuggest('avgReviewDuration', 'Review Duration', data?.avgReviewDurationHours ?? 0, TOOLTIPS.avgReviewDuration)}
           />
           <MetricCard
@@ -237,6 +242,7 @@ const EmTeamDashboard: React.FC<EmTeamDashboardProps> = ({ refreshKey, project, 
             icon={<AlertTriangle size={20} />}
             tooltip={TOOLTIPS.unestimatedRatio}
             dynamicDerivation={data?.traces?.unestimatedRatio}
+            aiConfigured={aiConfigured}
             onAiSuggest={() => handleAiSuggest('unestimatedRatio', 'Unestimated Ratio', data?.unestimatedRatio ?? 0, TOOLTIPS.unestimatedRatio)}
           />
         </div>
@@ -247,6 +253,8 @@ const EmTeamDashboard: React.FC<EmTeamDashboardProps> = ({ refreshKey, project, 
             <SectionTitle 
               title="Cycle Time Distribution" 
               tooltip={{ description: 'Weekly median (p50) and p85 cycle time trend.', derivation: TOOLTIPS.cycleTimeP50.derivation }}
+              aiConfigured={aiConfigured}
+              onAiSuggest={() => handleAiSuggest('cycleTimeDistribution', 'Cycle Time Distribution', `p50: ${data?.cycleTime.p50}h, p85: ${data?.cycleTime.p85}h`, { description: 'Cycle time distribution across the team' })}
             />
             <div className="h-[300px] w-full mt-4">
               <ResponsiveContainer width="100%" height="100%">
@@ -277,6 +285,8 @@ const EmTeamDashboard: React.FC<EmTeamDashboardProps> = ({ refreshKey, project, 
             <SectionTitle 
               title="Weekly Throughput" 
               tooltip={{ description: 'Number of tickets and Story Points completed per week.', derivation: TOOLTIPS.totalTickets.derivation }}
+              aiConfigured={aiConfigured}
+              onAiSuggest={() => handleAiSuggest('weeklyThroughput', 'Weekly Throughput', data?.weeklyThroughput.map(t => `${t.week}: ${t.count} tix, ${t.storyPoints} SP`).join('; ') ?? 'No data', { description: 'Weekly throughput trend' })}
             />
             <div className="h-[300px] w-full mt-4">
               <ResponsiveContainer width="100%" height="100%">
@@ -299,7 +309,11 @@ const EmTeamDashboard: React.FC<EmTeamDashboardProps> = ({ refreshKey, project, 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           {/* Work Type Distribution */}
           <div className="bg-slate-900/40 border border-slate-800/60 rounded-2xl p-6 shadow-sm">
-            <SectionTitle title="Work Type Distribution" />
+            <SectionTitle 
+              title="Work Type Distribution" 
+              aiConfigured={aiConfigured}
+              onAiSuggest={() => handleAiSuggest('workTypeDistribution', 'Work Type Distribution', data?.workTypeDistribution.map(w => `${w.type}: ${w.count}`).join('; ') ?? 'No data', { description: 'Types of work being delivered' })}
+            />
             <div className="h-[300px] w-full mt-4 flex items-center">
               <div className="flex-1 h-full">
                 <ResponsiveContainer width="100%" height="100%">
@@ -332,7 +346,12 @@ const EmTeamDashboard: React.FC<EmTeamDashboardProps> = ({ refreshKey, project, 
 
           {/* Lead Time Breakdown */}
           <div className="bg-slate-900/40 border border-slate-800/60 rounded-2xl p-6 shadow-sm">
-            <SectionTitle title="Lead Time Breakdown" tooltip={{ description: 'How much time is spent actively working vs waiting vs blocked.' }} />
+            <SectionTitle 
+              title="Lead Time Breakdown" 
+              tooltip={{ description: 'How much time is spent actively working vs waiting vs blocked.' }} 
+              aiConfigured={aiConfigured}
+              onAiSuggest={() => handleAiSuggest('leadTimeBreakdown', 'Lead Time Breakdown', `Active: ${data?.leadTimeBreakdown.activePercent}%, Wait: ${data?.leadTimeBreakdown.waitPercent}%, Blocked: ${data?.leadTimeBreakdown.blockedPercent}%`, { description: 'Lead time efficiency breakdown' })}
+            />
             <div className="h-[300px] w-full mt-4 flex flex-col justify-center px-10">
               {data?.leadTimeBreakdown ? (
                 <div className="space-y-8">
@@ -387,7 +406,12 @@ const EmTeamDashboard: React.FC<EmTeamDashboardProps> = ({ refreshKey, project, 
 
         {/* Aging WIP */}
         <div className="bg-slate-900/40 border border-slate-800/60 rounded-2xl p-6 shadow-sm">
-          <SectionTitle title="Aging WIP" icon={<Layers size={18} className="text-amber-400" />} />
+          <SectionTitle 
+            title="Aging WIP" 
+            icon={<Layers size={18} className="text-amber-400" />} 
+            aiConfigured={aiConfigured}
+            onAiSuggest={() => handleAiSuggest('agingWip', 'Aging WIP', data?.agingWip.length ?? 0, { description: 'Analysis of tickets stuck in current statuses' })}
+          />
           <div className="mt-4 overflow-hidden rounded-xl border border-slate-800">
             <table className="w-full text-left border-collapse">
               <thead className="bg-slate-800/50">

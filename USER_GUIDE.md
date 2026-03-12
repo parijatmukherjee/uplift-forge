@@ -132,7 +132,7 @@ Click any tab to switch pages. The active tab is highlighted with an indigo acce
 
 The Home page is a persona-aware landing page. It shows:
 
-- 👋 A welcome message tailored to your role (e.g. "Engineering Command Center" for EMs, "Your Performance Dashboard" for ICs)
+- 👋 A welcome message tailored to your role (e.g. "Team Performance Hub" for EMs, "Delivery Command Center" for DMs)
 - 📋 A 4-step setup guide
 - 🃏 Feature cards explaining what the app does
 
@@ -147,9 +147,21 @@ The Home page is a persona-aware landing page. It shows:
 - 🎫 **Total Tickets** — volume KPI
 - ⏱️ **Cycle Time p50** — median cycle time (from first activity to done)
 - 🔁 **Rework Rate** — percentage of tickets with backward status transitions
-- ✅ **First-Time Pass Rate** — percentage of tickets completed without any rework
-- 🎯 **SP Estimation Accuracy** — ratio of active time from history vs estimated (SP × sp_to_days × 8h)
-- ⏱️ **Avg Review Duration** — average time tickets spend in review statuses
+- 🎯 **SP Accuracy** — ratio of active time from history vs estimated (SP × sp_to_days × 8h)
+- ⏱️ **Review Duration** — average time tickets spend in review statuses
+- 📋 **Unestimated Ratio** — percentage of resolved tickets missing SP estimates
+
+---
+
+## 🎭 Try Demo Mode
+
+Want to explore Uplift Forge without connecting your real JIRA?
+
+1. On the login screen, click **Try Demo Mode** 🎲.
+2. The app will generate 200+ realistic mock tickets across multiple projects.
+3. You can switch personas (via Reset App) to see how different roles see the data.
+4. Clicking **Sync & Refresh** while in demo mode will generate fresh randomized data.
+5. All features (except real JIRA write-back) are available, including AI suggestions (requires your own API key).
 
 ### 📈 Cycle Time Distribution
 

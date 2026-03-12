@@ -59,8 +59,10 @@ export const ExplainModal: React.FC<{
 
 interface MetricCardProps {
   icon: React.ReactNode;
-  label: string;
-  value: string;
+  label?: string;
+  title?: string;
+  value: string | number;
+  unit?: string;
   color?: string;
   subtitle?: string;
   tooltip?: MetricTooltip;
@@ -71,11 +73,14 @@ interface MetricCardProps {
 }
 
 const MetricCard: React.FC<MetricCardProps> = ({
-  icon, label, value, color = 'indigo', subtitle, tooltip, trend, onAiSuggest, aiConfigured, dynamicDerivation,
+  icon, label, title, value, unit, color = 'indigo', subtitle, tooltip, trend, onAiSuggest, aiConfigured, dynamicDerivation,
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const [showExplain, setShowExplain] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
+
+  const displayLabel = title || label || '';
+  const displaySubtitle = unit ? `${unit}` : subtitle;
 
   useEffect(() => {
     if (!showTooltip) return;
@@ -104,14 +109,14 @@ const MetricCard: React.FC<MetricCardProps> = ({
     <div className={`glass-card p-4 border ${colors.card}`}>
       <div className="flex items-center gap-1.5 mb-2">
         <span className={colors.icon}>{icon}</span>
-        <span className="text-xs text-slate-400 font-medium flex-1">{label}</span>
+        <span className="text-xs text-slate-400 font-medium flex-1">{displayLabel}</span>
         {tooltip && (
           <TooltipPopover
             ref={tooltipRef}
             show={showTooltip}
             onToggle={() => setShowTooltip(!showTooltip)}
             tooltip={tooltip}
-            ariaLabel={`Help: ${label}`}
+            ariaLabel={`Help: ${displayLabel}`}
             position="right"
           />
         )}
@@ -119,7 +124,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
           <button
             onClick={() => setShowExplain(true)}
             className="text-slate-500 hover:text-slate-300 transition-colors"
-            aria-label={`Explain: ${label}`}
+            aria-label={`Explain: ${displayLabel}`}
           >
             <BookOpen size={13} />
           </button>
@@ -128,20 +133,20 @@ const MetricCard: React.FC<MetricCardProps> = ({
           <button
             onClick={onAiSuggest}
             className="text-violet-400/60 hover:text-violet-400 transition-colors"
-            aria-label={`AI suggestions for ${label}`}
+            aria-label={`AI suggestions for ${displayLabel}`}
           >
             <Sparkles size={13} />
           </button>
         )}
       </div>
       {showExplain && derivationText && (
-        <ExplainModal title={label} derivation={derivationText} onClose={() => setShowExplain(false)} />
+        <ExplainModal title={displayLabel} derivation={derivationText} onClose={() => setShowExplain(false)} />
       )}
       <div className="flex items-end gap-2">
         <p className="text-xl font-bold text-slate-100">{value}</p>
         {trend != null && <TrendArrow change={trend.change} lowerIsBetter={trend.lowerIsBetter} />}
       </div>
-      {subtitle && <span className="text-[10px] text-slate-500">{subtitle}</span>}
+      {displaySubtitle && <span className="text-[10px] text-slate-500">{displaySubtitle}</span>}
     </div>
   );
 };

@@ -35,6 +35,8 @@ src/
 │       ├── dm-metrics.service.ts  # 🌊 DM persona metrics — CFD, lead time, WIP, flow efficiency, Monte Carlo
 │       ├── ic-metrics.service.ts  # 🧑‍💻 IC persona metrics — personal cycle time, rework, goals, team comparison
 │       ├── cto-metrics.service.ts # 🏛️ Management persona metrics — cross-project throughput, cycle time, bug escape, tech debt, flow efficiency
+│       ├── demo.service.ts        # 🚀 Demo mode setup and state management
+│       ├── demo-data.service.ts   # 🎲 Mock data generation for demo mode
 │       ├── ai.service.ts          # 🤖 AI suggestion service (OpenAI + Claude, persona-aware prompts)
 │       ├── epic.service.ts        # 🏔️ Epic aggregation, risk scoring, child ticket grouping
 │       ├── project.service.ts     # 📁 Multi-project CRUD, cross-project metric aggregation
@@ -378,7 +380,16 @@ Both credential stores follow the same isolation pattern:
 - 🎭 Main service tests mock `electron-store` and `getConfig()` via `vi.mock()`
 - 🌐 Renderer tests use jsdom + Testing Library, mock `window.api` globally
 - 📊 Coverage thresholds: statements 90%, branches 80%, functions 85%, lines 90%
-- ✅ 675 tests across 33 test suites
+- ✅ 408 tests across 30 test suites
+
+### 🎭 Enhanced Demo Mode
+
+Uplift Forge includes a full-featured demo mode for exploration without JIRA credentials:
+
+- **🚀 Initialization**: Triggered via "Try Demo Mode" on the login screen. Wipes existing state, sets a mock `https://demo.atlassian.net` URL, and populates the cache with 200+ generated tickets.
+- **🎲 Mock Data**: `demo-data.service.ts` provides realistic, randomized ticket data including full changelogs, rework history, and blocker periods.
+- **🔄 Persistence**: Unlike standard sync, demo mode intercepts JIRA API calls in `jira.service.ts` and returns mock data. This allows users to "Sync" and see new randomized data while in demo mode.
+- **📊 Full Coverage**: Demo mode supports all 4 personas, AI suggestions (requires API key), and multi-project views.
 
 ### 🎭 E2E Tests (Playwright + Electron)
 - 🔌 Launches the **real packaged app** (`out/Uplift Forge-darwin-arm64/`) per test

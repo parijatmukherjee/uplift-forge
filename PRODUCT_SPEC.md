@@ -307,41 +307,42 @@ These are Uplift Forge differentiators to keep:
 ## Build Phases
 
 ### Phase 1 — Foundation: Timeline Engine + Persona Merge
-- [ ] Merge management + engineering_manager into single `engineering_manager` persona
-- [ ] Add `assignee_id`, `sprint`, `components` to ProcessedTicket
-- [ ] Build `timeline.service.ts` (TicketTimeline extraction from changelog)
-- [ ] Add status classification config (active/blocked/done statuses)
-- [ ] Percentile computation utility
-- [ ] Update tab visibility for 3 personas
+- [x] Merge management + engineering_manager into single `engineering_manager` persona (Note: `management` persona later re-added for org-wide health radar)
+- [x] Add `assignee_id`, `sprint`, `components` to ProcessedTicket
+- [x] Build `timeline.service.ts` (TicketTimeline extraction from changelog)
+- [x] Add status classification config (active/blocked/done statuses)
+- [x] Percentile computation utility
+- [x] Update tab visibility for 4 personas
 
 ### Phase 2 — EM Metrics
-- [ ] `em-metrics.service.ts` — cycle time distribution, contribution spread, rework rate
-- [ ] EM team dashboard page (replaces current TeamMetrics for EM)
-- [ ] EM individual metrics with cycle time + rework
-- [ ] Aging WIP for EM
-- [ ] Bug ratio per engineer
+- [x] `em-metrics.service.ts` — cycle time distribution, contribution spread, rework rate
+- [x] EM team dashboard page (replaces current TeamMetrics for EM)
+- [x] EM individual metrics with cycle time + rework
+- [x] Aging WIP for EM
+- [x] Bug ratio per engineer
 
 ### Phase 3 — DM Metrics
-- [ ] `dm-metrics.service.ts` — CFD, lead time, WIP, blockers, flow efficiency
-- [ ] DM flow dashboard page (replaces current TeamMetrics for DM)
-- [ ] Throughput stability
-- [ ] Monte Carlo forecasting
-- [ ] Aging WIP with tiered alerts
-- [ ] DM config (WIP limit, aging thresholds)
+- [x] `dm-metrics.service.ts` — CFD, lead time, WIP, blockers, flow efficiency
+- [x] DM flow dashboard page (replaces current TeamMetrics for DM)
+- [x] Throughput stability
+- [x] Monte Carlo forecasting
+- [x] Aging WIP with tiered alerts
+- [x] DM config (WIP limit, aging thresholds)
 
 ### Phase 4 — IC Metrics
-- [ ] `ic-metrics.service.ts` — personal cycle time, throughput, rework, time-in-status
-- [ ] IC personal dashboard page (replaces current IndividualMetrics for IC)
-- [ ] Privacy: IC data scoped to own account_id only
-- [ ] Opt-in team comparison
-- [ ] Personal goal setting
-- [ ] IC config (my_account_id, goals, opt_in_team_comparison)
+- [x] `ic-metrics.service.ts` — personal cycle time, throughput, rework, time-in-status
+- [x] IC personal dashboard page (replaces current IndividualMetrics for IC)
+- [x] Privacy: IC data scoped to own account_id only
+- [x] Opt-in team comparison
+- [x] Personal goal setting
+- [x] IC config (my_account_id, goals, opt_in_team_comparison)
 
-### Phase 5 — Sprint Support + Polish
-- [ ] Extract sprint data from raw cache
-- [ ] Sprint commitment vs delivery for EM
-- [ ] Seniority-calibrated output (optional)
-- [ ] Scheduled report generation
+### Phase 5 — Org Health + Demo Mode
+- [x] `cto-metrics.service.ts` — cross-project org health radar
+- [x] Management org dashboard page
+- [x] Enhanced Demo Mode with realistic randomized mock data
+- [x] Cross-dashboard AI Powered Suggestions integration
+- [ ] scheduled report generation
 - [ ] Anomaly detection and alerting
 
 ---

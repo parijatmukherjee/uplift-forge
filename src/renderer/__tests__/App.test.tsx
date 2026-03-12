@@ -12,6 +12,7 @@ vi.mock('../api', () => ({
   getConfig: vi.fn(),
   getJiraProject: vi.fn(),
   listProjects: vi.fn(),
+  getAiConfig: vi.fn().mockResolvedValue({ data: { hasKey: false } }),
   checkForUpdates: vi.fn().mockResolvedValue({ data: { currentVersion: '1.0.0' } }),
 }));
 
@@ -34,8 +35,8 @@ describe('App', () => {
 
   it('renders loading state initially', () => {
     (getAuthState as any).mockReturnValue(new Promise(() => {}));
-    render(<App />);
-    expect(screen.getByRole('main', { hidden: true }).parentElement).toBeInTheDocument();
+    const { container } = render(<App />);
+    expect(container.querySelector('.animate-spin')).toBeInTheDocument();
   });
 
   it('renders login page when unauthenticated', async () => {
@@ -57,7 +58,7 @@ describe('App', () => {
   it('renders sidebar and home page when authenticated', async () => {
     render(<App />);
     await waitFor(() => screen.getByTestId('sidebar'));
-    expect(screen.getByText(/Engineering Command Center/)).toBeInTheDocument();
+    expect(screen.getByText(/Team Performance Hub/)).toBeInTheDocument();
   });
 
   it('handles logout', async () => {

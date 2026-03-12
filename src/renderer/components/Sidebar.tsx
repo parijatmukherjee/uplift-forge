@@ -59,7 +59,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, project, emai
   }, [persona]);
 
   return (
-    <aside className="w-56 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-r border-slate-700/30 flex flex-col flex-shrink-0">
+    <aside data-testid="sidebar" className="w-56 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-r border-slate-700/30 flex flex-col flex-shrink-0">
       {/* macOS traffic light spacer + drag region */}
       <div className="h-10 flex-shrink-0" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties} />
       {/* Logo / Project branding */}

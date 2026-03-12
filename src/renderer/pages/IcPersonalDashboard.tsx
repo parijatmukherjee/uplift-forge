@@ -222,7 +222,7 @@ const IcPersonalDashboard: React.FC<IcPersonalDashboardProps> = ({ refreshKey, p
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div data-testid="ic-personal-dashboard" className="flex flex-col h-full">
       {/* Header */}
       <div className="px-6 py-4 border-b border-slate-700/50 flex-shrink-0 flex items-center justify-between">
         <div>
