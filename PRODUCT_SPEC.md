@@ -342,8 +342,15 @@ These are Uplift Forge differentiators to keep:
 - [x] Management org dashboard page
 - [x] Enhanced Demo Mode with realistic randomized mock data
 - [x] Cross-dashboard AI Powered Suggestions integration
-- [ ] scheduled report generation
-- [ ] Anomaly detection and alerting
+
+---
+
+## 🚀 Future Roadmap
+
+- [ ] **Scheduled Reports**: Automated PDF/Email delivery of dashboard snapshots.
+- [ ] **Anomaly Detection**: Intelligent alerting for spikes in cycle time or rework.
+- [ ] **Advanced Filtering**: Per-dashboard JQL overrides.
+- [ ] **Team Sentiment**: Optional integration with surveys to pair velocity with morale.
 
 ---
 

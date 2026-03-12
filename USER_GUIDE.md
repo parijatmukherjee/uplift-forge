@@ -252,12 +252,34 @@ Values are color-coded against team average: 🟢 better, 🔴 worse.
 
 ## 🏛️ Management Org Dashboard
 
-**For Members of Management.** An organizational health radar across all configured projects:
+**For executive leadership and directors.** An organizational health radar across all configured projects:
 
-- 🎫 **Total Tickets** — volume across all projects
-- 🐛 **Bug Escape Rate** — bugs ÷ total stories with traffic-light indicator
-- 🔧 **Tech Debt Ratio** — capacity on bugs + tech debt vs features
-- 🌊 **Flow Efficiency** — aggregate active time / lead time
+### 🃏 KPI Cards (Traffic Light System)
+
+- 🎫 **Total Tickets** — Aggregate resolved volume across all tracked projects.
+- 🐛 **Bug Escape Rate** — Ratio of bugs to stories delivered. (Green < 10.00%, Amber < 20.00%)
+- 🔧 **Tech Debt Ratio** — Capacity spent on bugs and maintenance vs features. (Green < 20.00%)
+- 🌊 **Flow Efficiency** — Process efficiency across the entire organization. (Green > 40.00%)
+
+### 📊 Cross-Project Analysis
+
+- 📈 **Throughput Trend by Project** — Multi-line chart comparing delivery velocity.
+- 📊 **Cycle Time p85 by Project** — Benchmarking project delivery speed.
+- 📊 **Delivery Predictability** — Project consistency score based on Cycle Time CoV.
+- 🏗️ **Work Type by Project** — Distribution of work categories per project.
+
+---
+
+## ✨ Pro Tips
+
+### 🎯 High Precision Tracking
+All metrics in Uplift Forge now display **2 decimal places** (e.g., `24.42h` or `15.05%`). This provides surgical precision for tracking minute improvements in team performance over time.
+
+### 📖 Dynamic Computation Traces
+Click the **BookOpen** icon next to any metric to see the exact computation pipeline. When available, it shows the real numbers used (e.g., "15 resolved tickets / 3 engineers") instead of just a static formula.
+
+### ✨ AI-Powered Mitigation
+Look for the **Sparkles** icon on cards and charts. It sends the specific metric context to your connected AI (OpenAI or Claude) to get tailored coaching and mitigation strategies.
 
 ---
 

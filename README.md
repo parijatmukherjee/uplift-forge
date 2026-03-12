@@ -27,7 +27,8 @@ You connect to JIRA. Uplift Forge pulls your tickets, crunches the numbers, and 
 - 🏛️ **Management Org Dashboard** — cross-project organizational health radar with throughput by project, cycle time comparison, bug escape rate, tech debt ratio, flow efficiency, headcount-normalized throughput, traffic-light KPIs, delivery predictability, work type by project
 - 🏔️ **Epic Tracker** — epic-level progress tracking with auto-computed risk scores and delivery risk analysis
 - 🤖 **AI Suggestions** — connect OpenAI or Claude to get persona-aware actionable improvement suggestions
-- 📖 **Explain Button** — every metric has a BookOpen icon that opens a modal explaining the data source, computation formula, filters, and config dependencies. Shows **dynamic computation traces** with real values (ticket counts, filter results, intermediate calculations) when available
+- 📖 **Explain Button** — every metric has a BookOpen icon that opens a modal explaining the data source, computation formula, filters, and config dependencies. Shows **dynamic computation traces** with real values (ticket counts, filter results, intermediate calculations) when available.
+- 🎯 **High Precision** — all metrics now utilize 2 decimal place formatting for surgical performance tracking.
 
 All data stays on your machine. 🏠 Your credentials live in your OS keychain. 🔐 Nothing leaves your laptop (except JIRA API calls and optional AI provider calls).
 
