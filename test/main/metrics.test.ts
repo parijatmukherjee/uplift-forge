@@ -71,21 +71,6 @@ describe('metrics.service', () => {
       expect(res.summary.avg_cycle_time_hours).toBe(15);
     });
 
-    it('computes breakdown by BU', () => {
-      const tickets = [
-        makeTicket('T-1', { tpd_bu: 'B2C', story_points: 5 }),
-        makeTicket('T-2', { tpd_bu: 'B2B', story_points: 2 }),
-        makeTicket('T-3', { tpd_bu: 'B2C', story_points: 3 }),
-      ];
-      vi.mocked(getTickets).mockReturnValue(tickets);
-      vi.mocked(getTimelines).mockReturnValue([]);
-
-      const res = getTeamMetrics('all');
-      expect(res.by_business_unit['B2C'].tickets).toBe(2);
-      expect(res.by_business_unit['B2C'].story_points).toBe(8);
-      expect(res.by_business_unit['B2B'].tickets).toBe(1);
-    });
-
     it('computes monthly trend', () => {
       const tickets = [
         makeTicket('T-1', { resolved: '2025-01-01T10:00:00Z', story_points: 5 }),

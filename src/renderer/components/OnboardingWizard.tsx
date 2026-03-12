@@ -90,8 +90,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
                 payload.projects = validKeys.slice(1).map(k => ({
                   project_key: k,
                   project_name: k,
-                  field_ids: { tpd_bu: '', work_stream: '', story_points: '' },
-                  mapping_rules: { tpd_bu: {}, work_stream: {} },
+                  field_ids: { story_points: '' },
                 }));
               }
             }

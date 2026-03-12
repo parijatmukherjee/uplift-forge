@@ -14,19 +14,18 @@ Uplift Forge is a desktop app that connects to JIRA and turns ticket data into c
 4. [⚙️ First-Time Setup](#️-first-time-setup)
 5. [🧭 Navigation](#-navigation)
 6. [🏠 Home](#-home)
-7. [📊 Engineering Attribution](#-engineering-attribution)
-8. [👥 EM Team Dashboard](#-em-team-dashboard)
-9. [🧑‍💻 EM Individual Dashboard](#-em-individual-dashboard)
-10. [🌊 DM Flow Dashboard](#-dm-flow-dashboard)
-11. [🎯 IC Personal Dashboard](#-ic-personal-dashboard)
-12. [🏛️ Management Org Dashboard](#️-management-org-dashboard)
-13. [🏔️ Epic Tracker](#️-epic-tracker)
-14. [🔧 Settings](#-settings)
-15. [🤖 AI-Powered Suggestions](#-ai-powered-suggestions)
-16. [🔄 Updating the App](#-updating-the-app)
-17. [🛡️ Privacy & Security](#️-privacy--security)
-18. [🩺 Troubleshooting](#-troubleshooting)
-19. [🌐 Multi-Project Support](#-multi-project-support)
+7. [👥 EM Team Dashboard](#-em-team-dashboard)
+8. [🧑‍💻 EM Individual Dashboard](#-em-individual-dashboard)
+9. [🌊 DM Flow Dashboard](#-dm-flow-dashboard)
+10. [🎯 IC Personal Dashboard](#-ic-personal-dashboard)
+11. [🏛️ Management Org Dashboard](#️-management-org-dashboard)
+12. [🏔️ Epic Tracker](#️-epic-tracker)
+13. [🔧 Settings](#-settings)
+14. [🤖 AI-Powered Suggestions](#-ai-powered-suggestions)
+15. [🔄 Updating the App](#-updating-the-app)
+16. [🛡️ Privacy & Security](#️-privacy--security)
+17. [🩺 Troubleshooting](#-troubleshooting)
+18. [🌐 Multi-Project Support](#-multi-project-support)
 
 ---
 
@@ -77,10 +76,10 @@ After your first login, an **Onboarding Wizard** 🧙‍♂️ guides you throug
 
 | Persona | Best For | What You Get |
 |---------|----------|-------------|
-| 👥 **Engineering Manager / VP** | Team leads, VPs managing 1-10 projects | All 6 tabs — cycle time, throughput, contribution, aging WIP, rework, bug ratio, per-engineer individual metrics, multi-project aggregation 🌐 |
-| 📋 **Delivery Manager** | Scrum masters, PMs | Flow Dashboard — CFD, lead time, WIP, aging WIP, blockers, flow efficiency, Monte Carlo forecast 🌊 |
-| 🧑‍💻 **Individual Contributor** | Developers, engineers | Personal dashboard — cycle time trend, throughput, time-in-status, rework, scope trajectory, team comparison (opt-in), goals 🎯 |
-| 🏛️ **Member of Management** | Directors, VPs, C-level | Organizational Health Radar — cross-project throughput, cycle time by project, bug escape rate, tech debt ratio, flow efficiency, headcount-normalized throughput. Multi-project. 💼 |
+| 👥 **Engineering Manager / VP** | Team leads, VPs managing 1-10 projects | Home, Metrics, Individual, Epics, Settings — cycle time, throughput, contribution, aging WIP, rework, bug ratio, per-engineer individual metrics, multi-project aggregation 🌐 |
+| 📋 **Delivery Manager** | Scrum masters, PMs | Home, Metrics, Epics, Settings — Flow Dashboard (CFD, lead time, WIP, aging WIP, blockers, flow efficiency, Monte Carlo forecast) 🌊 |
+| 🧑‍💻 **Individual Contributor** | Developers, engineers | Home, Individual, Settings — Personal dashboard (cycle time trend, throughput, time-in-status, rework, scope trajectory, team comparison (opt-in), goals) 🎯 |
+| 🏛️ **Member of Management** | Directors, VPs, C-level | Home, Metrics, Epics, Settings — Organizational Health Radar (cross-project throughput, cycle time by project, bug escape rate, tech debt ratio, flow efficiency, headcount-normalized throughput). Multi-project. 💼 |
 
 > 🔒 **This choice is permanent.** Your persona is locked after onboarding. To change it later, use "Reset App" in the sidebar — this performs a full wipe (credentials, config, caches, AI keys) and returns you to the login page, just like a fresh install. Each persona sees completely different metrics — there is no cross-persona visibility.
 
@@ -95,10 +94,9 @@ After completing onboarding, head to **Settings** (the gear icon in the sidebar)
 
 1. 🏷️ **Set your Project Key** — e.g. `ACTIN`, `PROJ`. This is the prefix on your JIRA ticket keys.
 2. 📥 **Click Fetch Fields** — this pulls your project's custom fields and statuses from JIRA.
-3. 🗺️ **Map your JIRA fields** — select the custom field IDs for TPD Business Unit, Work Stream, and Story Points.
+3. 🗺️ **Map your JIRA Story Points field** — select the custom field ID for Story Points.
 4. 🚦 **Classify Statuses** — categorized your statuses into Active, Blocked, and Done to enable timeline metrics.
 5. 💾 **Click Save Settings**.
-6. 🔄 Go to **Engineering Attribution** and click **Sync Now** to pull your tickets.
 
 That's it. You're ready to go! 🎉
 
@@ -123,7 +121,6 @@ Click any tab to switch pages. The active tab is highlighted with an indigo acce
 | Tab | 👥 Eng Mgr | 📋 Delivery | 🧑‍💻 Individual | 🏛️ Management |
 |-----|-----------|------------|--------------|--------------|
 | 🏠 Home | ✅ | ✅ | ✅ | ✅ |
-| 📊 Attribution | ✅ | ✅ | ❌ | ✅ |
 | 👥 Team Metrics | ✅ (EM Dashboard) | ✅ (Flow Dashboard) | ❌ | ✅ (Org Dashboard) |
 | 🧑‍💻 Individual Metrics | ✅ (EM Individual) | ❌ | ✅ (Personal Dashboard) | ❌ |
 | 🏔️ Epic Tracker | ✅ | ✅ | ❌ | ✅ |
@@ -138,35 +135,6 @@ The Home page is a persona-aware landing page. It shows:
 - 👋 A welcome message tailored to your role (e.g. "Engineering Command Center" for EMs, "Your Performance Dashboard" for ICs)
 - 📋 A 4-step setup guide
 - 🃏 Feature cards explaining what the app does
-
----
-
-## 📊 Engineering Attribution
-
-This is the workhorse of the app 💪. It shows a sortable, paginated table of all your resolved JIRA tickets.
-
-### 🗂️ The Ticket Table
-
-Each row shows:
-
-| Column | Description |
-|--------|------------|
-| 🔑 **Key** | JIRA ticket key (e.g. ACTIN-123). Click the link icon to open in JIRA. |
-| 📝 **Summary** | Ticket title (truncated; hover to see full text). |
-| 🚦 **Status** | Colored badge — green for Done/Closed, red for Rejected/Cancelled. |
-| 👤 **Assignee** | Who the ticket is assigned to. |
-| 🏢 **TPD BU** | Business unit. Editable field. |
-| 🔀 **Work Stream** | Work stream. Editable field. |
-| 📐 **SP** | Story points. |
-| ⚡ **Actions** | Sync (refresh from JIRA), Infer (run rules). |
-
-### 🎯 What You Can Do
-
-- 🔃 **Sort** — Click any column header to sort ascending/descending
-- ✏️ **Edit inline** — Change TPD BU or Work Stream directly in the table
-- 🧮 **Run Inference** — Click calculator icons to automatically classify tickets based on your rules
-- 🔄 **Sync** — Re-fetch tickets from JIRA
-- 💾 **Save** — Push edits back to JIRA
 
 ---
 
@@ -303,13 +271,11 @@ Risk levels: **Low** (0-0.3) 🟢, **Medium** (0.3-0.6) 🟡, **High** (0.6-1.0)
 
 **🔗 JIRA Connection**
 - 🏷️ **Project Key** — your JIRA project prefix
-- 📥 **Fetch Fields** — loads custom fields and statuses
+- 📥 **Fetch Fields** — loads statuses and available fields
 - 📅 **Data Time Range** — 1–12 months of history to fetch
 
 **🗺️ JIRA Field Mappings**
-- 🏢 **TPD Business Unit** — select the custom field ID
-- 🔀 **Work Stream** — select the custom field ID
-- 📐 **Story Points** — select the custom field ID
+- 📐 **Story Points** — select the custom field ID for story point estimates
 
 ### 📊 Metrics
 

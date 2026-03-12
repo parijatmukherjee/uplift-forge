@@ -32,7 +32,6 @@ export const getJiraMembers = () => wrap(window.api.getJiraMembers());
 export const getTickets = (projectKey?: string) => wrap(window.api.getTickets(projectKey));
 export const updateTicket = (key: string, fields: any) => wrap(window.api.updateTicket(key, fields));
 export const syncOneTicket = (key: string) => wrap(window.api.syncOneTicket(key));
-export const calcTicketFields = (key: string) => wrap(window.api.calcTicketFields(key));
 
 // Sync
 export const syncFull = (projectKey?: string) => wrap(window.api.syncFull(projectKey));
@@ -68,10 +67,6 @@ export const updateProjectConfig = (projectKey: string, updates: any) => wrap(wi
 export const removeProject = (projectKey: string) => wrap(window.api.removeProject(projectKey));
 export const syncProject = (projectKey: string) => wrap(window.api.syncProject(projectKey));
 export const getCrossProjectMetrics = (period: string) => wrap(window.api.getCrossProjectMetrics(period));
-
-// Legacy Metrics (still used in tests)
-export const getTeamMetrics = (period = 'all', projectKey?: string) => wrap(window.api.getTeamMetrics(period, projectKey));
-export const getIndividualMetrics = (period = 'all', projectKey?: string) => wrap(window.api.getIndividualMetrics(period, projectKey));
 
 // Persona-specific metrics
 export const getEmTeamMetrics = (period = 'all', projectKey?: string) => wrap(window.api.getEmTeamMetrics(period, projectKey));

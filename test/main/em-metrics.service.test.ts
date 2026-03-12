@@ -40,7 +40,6 @@ function makeTicket(key: string, overrides: any = {}) {
     issue_type: 'Story',
     story_points: 3,
     resolved: '2025-01-10T10:00:00Z',
-    work_stream: 'Product',
     ...overrides,
   };
 }

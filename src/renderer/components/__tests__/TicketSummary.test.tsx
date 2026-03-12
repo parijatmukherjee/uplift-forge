@@ -7,10 +7,9 @@ const makeTicket = (overrides: any = {}) => ({
   summary: 'Test',
   status: 'Done',
   assignee: 'Alice',
-  tpd_bu: 'B2C',
-  work_stream: 'Product',
   has_computed_values: false,
   base_url: 'https://jira.test',
+  story_points: 3,
   ...overrides,
 });
 
@@ -22,47 +21,28 @@ describe('TicketSummary', () => {
     expect(screen.getByText('2')).toBeInTheDocument();
   });
 
-  it('displays fields complete percentage', () => {
+  it('shows missing story points count', () => {
     const tickets = [
-      makeTicket(),
-      makeTicket({ key: 'T-2', tpd_bu: null }),
-    ];
-    render(<TicketSummary tickets={tickets} activeFilter={null} onFilterChange={vi.fn()} />);
-    expect(screen.getByText('50%')).toBeInTheDocument();
-  });
-
-  it('displays 100% when all complete', () => {
-    render(<TicketSummary tickets={[makeTicket()]} activeFilter={null} onFilterChange={vi.fn()} />);
-    expect(screen.getByText('100%')).toBeInTheDocument();
-  });
-
-  it('shows missing field counts', () => {
-    const tickets = [
-      makeTicket({ tpd_bu: null }),
+      makeTicket({ story_points: null }),
       makeTicket({ key: 'T-2', story_points: null }),
-      makeTicket({ key: 'T-2b', story_points: null }),
-      makeTicket({ key: 'T-2c', story_points: null }),
-      makeTicket({ key: 'T-3', work_stream: null }),
+      makeTicket({ key: 'T-3', story_points: 5 }),
     ];
     render(<TicketSummary tickets={tickets} activeFilter={null} onFilterChange={vi.fn()} />);
     expect(screen.getByText('Missing Data')).toBeInTheDocument();
-    
-    expect(screen.getByText('BU (1)')).toBeInTheDocument();
-    expect(screen.getByText('WS (1)')).toBeInTheDocument();
-    expect(screen.getByText('SP (5)')).toBeInTheDocument();
+    expect(screen.getByText('Missing SP (2)')).toBeInTheDocument();
   });
 
   it('calls onFilterChange when missing filter clicked', () => {
     const onFilterChange = vi.fn();
-    render(<TicketSummary tickets={[makeTicket({ tpd_bu: null })]} activeFilter={null} onFilterChange={onFilterChange} />);
-    fireEvent.click(screen.getByText('BU (1)'));
-    expect(onFilterChange).toHaveBeenCalledWith('tpd_bu');
+    render(<TicketSummary tickets={[makeTicket({ story_points: null })]} activeFilter={null} onFilterChange={onFilterChange} />);
+    fireEvent.click(screen.getByText('Missing SP (1)'));
+    expect(onFilterChange).toHaveBeenCalledWith('story_points');
   });
 
   it('toggles off active filter', () => {
     const onFilterChange = vi.fn();
-    render(<TicketSummary tickets={[makeTicket({ tpd_bu: null })]} activeFilter="tpd_bu" onFilterChange={onFilterChange} />);
-    fireEvent.click(screen.getByText('BU (1)'));
+    render(<TicketSummary tickets={[makeTicket({ story_points: null })]} activeFilter="story_points" onFilterChange={onFilterChange} />);
+    fireEvent.click(screen.getByText('Missing SP (1)'));
     expect(onFilterChange).toHaveBeenCalledWith(null);
   });
 });

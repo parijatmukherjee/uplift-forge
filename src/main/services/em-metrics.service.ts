@@ -1,7 +1,7 @@
 import { getConfig } from './config.service.js';
 import { getTickets } from './ticket.service.js';
 import { getTimelines, computeSpAccuracy, computeReviewDuration, computeLeadTimeBreakdown, computeWorkTypeDistribution, computePercentiles } from './timeline.service.js';
-import type { EmTeamMetricsResponse, EmIndividualMetricsResponse, ProcessedTicket, TicketTimeline, CycleTimeDistribution, WorkStreamThroughput, ContributionEntry, AgingWipEntry, EngineerBugRatio } from '../../shared/types.js';
+import type { EmTeamMetricsResponse, EmIndividualMetricsResponse, ProcessedTicket, TicketTimeline, CycleTimeDistribution, ContributionEntry, AgingWipEntry, EngineerBugRatio } from '../../shared/types.js';
 
 /**
  * EM Persona Metrics — computed from tickets and timelines.
@@ -36,52 +36,48 @@ export function getEmTeamMetrics(period = 'all', projectKey?: string): EmTeamMet
   };
   traces.cycleTimeP50 = `${cycleTimeValues.length} resolved tickets with valid cycle time\np50 = ${pct.p50.toFixed(1)}h`;
 
-  // 2. Throughput by Work Stream
-  const throughputByWorkStream = computeThroughputByWorkStream(currentTickets);
-
-  // 3. Weekly Throughput (8 weeks)
+  // 2. Weekly Throughput (8 weeks)
   const weeklyThroughput = computeWeeklyThroughputWithSP(scopedTickets, timelineMap, 8);
 
-  // 4. Contribution Spread (normalized SP)
+  // 3. Contribution Spread (normalized SP)
   const contributionSpread = computeContributionSpread(currentTickets);
 
-  // 5. Aging WIP (from all tickets, not just resolved)
+  // 4. Aging WIP (from all tickets, not just resolved)
   const agingWip = computeAgingWip(allTickets, timelineMap);
 
-  // 6. Bug Ratio by Engineer
+  // 5. Bug Ratio by Engineer
   const bugRatioByEngineer = computeBugRatioByEngineer(currentTickets);
 
-  // 7. Rework Rate
+  // 6. Rework Rate
   const reworkCount = currentTimelines.filter(tl => tl.hasRework).length;
   const reworkRate = currentTimelines.length > 0 ? (reworkCount / currentTimelines.length) * 100 : 0;
   traces.reworkRate = `${reworkCount} tickets with rework / ${currentTimelines.length} total resolved tickets`;
 
-  // 8. SP Estimation Accuracy
+  // 7. SP Estimation Accuracy
   const spAccuracy = computeSpAccuracy(currentTickets, currentTimelines, cfg.sp_to_days);
   const spTickets = currentTickets.filter(t => (t.story_points ?? 0) > 0);
   traces.spAccuracy = `${currentTickets.length} tickets\n${spTickets.length} had SP > 0\nsp_to_days config = ${cfg.sp_to_days ?? 1}\n${spAccuracy != null ? `Avg accuracy = ${spAccuracy.toFixed(0)}%` : 'Not computable (no qualifying tickets)'}`;
 
-  // 9. First-time pass rate
+  // 8. First-time pass rate
   const firstTimePassRate = 100 - reworkRate;
 
-  // 10. Avg Review Duration
+  // 9. Avg Review Duration
   const avgReviewDurationHours = computeReviewDuration(currentTimelines);
-  traces.avgReviewDuration = `${currentTimelines.length} resolved tickets\nAvg time in statuses containing "review": ${avgReviewDurationHours?.toFixed(1) ?? 0}h`;
+  traces.avgReviewDuration = `${currentTimelines.length} resolved tickets\nAvg time in statuses containing \"review\": ${avgReviewDurationHours?.toFixed(1) ?? 0}h`;
 
-  // 11. Work Type Distribution
+  // 10. Work Type Distribution
   const workTypeDistribution = computeWorkTypeDistribution(currentTickets);
 
-  // 12. Unestimated Ratio
+  // 11. Unestimated Ratio
   const unestimatedCount = currentTickets.filter(t => t.story_points == null || t.story_points === 0).length;
   const unestimatedRatio = currentTickets.length > 0 ? (unestimatedCount / currentTickets.length) * 100 : 0;
   traces.unestimatedRatio = `${unestimatedCount} unestimated / ${currentTickets.length} total tickets`;
 
-  // 13. Lead Time Breakdown
+  // 12. Lead Time Breakdown
   const leadTimeBreakdown = computeLeadTimeBreakdown(currentTimelines);
 
   return {
     cycleTime,
-    throughputByWorkStream,
     weeklyThroughput,
     contributionSpread,
     agingWip,
@@ -209,21 +205,6 @@ function computeCycleTimeTrend(tickets: ProcessedTicket[], timelineMap: Map<stri
     });
   }
   return result;
-}
-
-function computeThroughputByWorkStream(tickets: ProcessedTicket[]): WorkStreamThroughput[] {
-  const byWs = new Map<string, { count: number; storyPoints: number }>();
-  for (const t of tickets) {
-    const ws = t.work_stream || 'Other';
-    const entry = byWs.get(ws) || { count: 0, storyPoints: 0 };
-    entry.count++;
-    entry.storyPoints += t.story_points ?? 0;
-    byWs.set(ws, entry);
-  }
-  return Array.from(byWs.entries()).map(([ws, data]) => ({
-    workStream: ws,
-    ...data,
-  })).sort((a, b) => b.count - a.count);
 }
 
 function computeWeeklyThroughputWithSP(tickets: ProcessedTicket[], timelineMap: Map<string, TicketTimeline>, weeks: number): EmTeamMetricsResponse['weeklyThroughput'] {

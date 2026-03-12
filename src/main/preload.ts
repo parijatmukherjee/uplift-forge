@@ -26,7 +26,6 @@ const api = {
   getTickets: (projectKey?: string) => ipcRenderer.invoke(Channels.TICKETS_LIST, projectKey),
   updateTicket: (key: string, fields: any) => ipcRenderer.invoke(Channels.TICKETS_UPDATE, key, fields),
   syncOneTicket: (key: string) => ipcRenderer.invoke(Channels.TICKETS_SYNC_ONE, key),
-  calcTicketFields: (key: string) => ipcRenderer.invoke(Channels.TICKETS_CALC_FIELDS, key),
 
   // Sync
   syncFull: (projectKey?: string) => ipcRenderer.invoke(Channels.SYNC_FULL, projectKey),
@@ -53,6 +52,14 @@ const api = {
   deleteAiConfig: () => ipcRenderer.invoke(Channels.AI_CONFIG_DELETE),
   testAiConnection: () => ipcRenderer.invoke(Channels.AI_CONFIG_TEST),
   getAiSuggestions: (req: any) => ipcRenderer.invoke(Channels.AI_SUGGEST, req),
+
+  // Multi-project
+  listProjects: () => ipcRenderer.invoke(Channels.PROJECT_LIST),
+  addProject: (project: any) => ipcRenderer.invoke(Channels.PROJECT_ADD, project),
+  updateProject: (projectKey: string, updates: any) => ipcRenderer.invoke(Channels.PROJECT_UPDATE, projectKey, updates),
+  removeProject: (projectKey: string) => ipcRenderer.invoke(Channels.PROJECT_REMOVE, projectKey),
+  syncProject: (projectKey: string) => ipcRenderer.invoke(Channels.PROJECT_SYNC, projectKey),
+  getCrossProjectMetrics: (period: string) => ipcRenderer.invoke(Channels.METRICS_CROSS_PROJECT, period),
 
   // Persona-specific metrics
   getEmTeamMetrics: (period: string, projectKey?: string) => ipcRenderer.invoke(Channels.METRICS_EM_TEAM, period, projectKey),

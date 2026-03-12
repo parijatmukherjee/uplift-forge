@@ -162,12 +162,6 @@ Separate from legacy manual field mapping, the Timeline Engine in `timeline.serv
 
 Status classification is configurable: Active Statuses, Blocked Statuses, Done Statuses.
 
-### 🧮 Field Engine
-
-The `field-engine.service.ts` provides rule-based automation for field mapping:
-- 🗺️ **Rule-based mapping** — automatically determines TPD BU and Work Stream based on ticket attributes (Labels, Components, parent Epic, etc.)
-- 🔄 **Inference Engine** — can be run on-demand to fill missing attribution fields.
-
 ### ⚙️ Config Defaults
 
 - `sp_to_days`: 1 (story point = 1 day = 8 hours for estimation accuracy)

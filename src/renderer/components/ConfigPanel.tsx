@@ -10,15 +10,14 @@ import {
   getJiraMembers,
   resetApp
 } from '../api';
-import type { AppConfig, FieldIds, MappingRules, TicketFilter, TrackedEngineer, JiraField, JiraStatus, ProjectInfo, ProjectConfig } from '../../shared/types';
-import RuleBuilder from './RuleBuilder';
+import type { AppConfig, FieldIds, TicketFilter, TrackedEngineer, JiraField, JiraStatus, ProjectInfo } from '../../shared/types';
 import ModalDialog from './ModalDialog';
 
 interface ConfigPanelProps {
   onConfigSaved?: () => void;
 }
 
-type TabType = 'project' | 'metrics' | 'attribution' | 'application';
+type TabType = 'project' | 'metrics' | 'application';
 
 const ConfigPanel: React.FC<ConfigPanelProps> = ({ onConfigSaved }) => {
   const [config, setConfig] = useState<AppConfig | null>(null);
@@ -120,7 +119,6 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ onConfigSaved }) => {
         project_key: config.project_key,
         field_ids: config.field_ids,
         ticket_filter: config.ticket_filter || { mode: 'last_x_months', months: 6 },
-        mapping_rules: config.mapping_rules || { tpd_bu: {}, work_stream: {} },
         sp_to_days: config.sp_to_days ?? 1,
         tracked_engineers: config.tracked_engineers || [],
         persona: config.persona,
@@ -176,7 +174,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ onConfigSaved }) => {
   const handleResetApp = async () => {
     try {
       await resetApp();
-      window.location.reload(); // Force reload to trigger auth/onboarding gate
+      // App will relaunch automatically from main process
     } catch (err) {
       toast.error('Failed to reset app');
     }
@@ -187,14 +185,6 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ onConfigSaved }) => {
     setConfig({
       ...config,
       field_ids: { ...config.field_ids, ...patch },
-    });
-  };
-
-  const updateMappingRules = (patch: Partial<MappingRules>) => {
-    if (!config) return;
-    setConfig({
-      ...config,
-      mapping_rules: { ...config.mapping_rules, ...patch },
     });
   };
 
@@ -222,6 +212,16 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ onConfigSaved }) => {
 
   return (
     <div className="flex flex-col h-full bg-slate-900 text-slate-200">
+      {loadError && (
+        <div className="px-6 py-3 bg-rose-500/10 border-b border-rose-500/20 flex items-center gap-3 text-rose-400 animate-in slide-in-from-top duration-300 sticky top-0 z-50">
+          <X size={18} />
+          <span className="text-sm font-medium">There was an error loading your configuration. Please check your JIRA connection.</span>
+          <button onClick={() => setLoadError(false)} className="ml-auto p-1 hover:bg-rose-500/10 rounded-md">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       <div className="flex items-center justify-between p-6 border-b border-slate-800">
         <div className="flex items-center gap-3">
           <Settings className="text-indigo-400" size={24} />
@@ -262,15 +262,6 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ onConfigSaved }) => {
         >
           <TrendingUp size={16} />
           Metrics & Workflow
-        </button>
-        <button
-          onClick={() => setActiveTab('attribution')}
-          className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 ${
-            activeTab === 'attribution' ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5' : 'border-transparent text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Filter size={16} />
-          Attribution Rules
         </button>
         <button
           onClick={() => setActiveTab('application')}
@@ -338,28 +329,6 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ onConfigSaved }) => {
               <div className="p-5 rounded-xl bg-slate-800/50 border border-slate-700 shadow-inner space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-slate-400 mb-2">TPD Business Unit Field</label>
-                    <select
-                      value={config.field_ids.tpd_bu}
-                      onChange={(e) => updateFieldIds({ tpd_bu: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                    >
-                      <option value="">-- No Mapping (Use Rules Only) --</option>
-                      {jiraFields.map(f => <option key={f.id} value={f.id}>{f.name} ({f.id})</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-400 mb-2">Work Stream Field</label>
-                    <select
-                      value={config.field_ids.work_stream}
-                      onChange={(e) => updateFieldIds({ work_stream: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                    >
-                      <option value="">-- No Mapping (Use Rules Only) --</option>
-                      {jiraFields.map(f => <option key={f.id} value={f.id}>{f.name} ({f.id})</option>)}
-                    </select>
-                  </div>
-                  <div>
                     <label className="block text-sm font-medium text-slate-400 mb-2">Story Points Field</label>
                     <select
                       value={config.field_ids.story_points}
@@ -417,7 +386,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ onConfigSaved }) => {
                       onChange={() => setConfig({ ...config, ticket_filter: { ...config.ticket_filter, mode: 'missing_fields' }})}
                       className="w-4 h-4 text-indigo-600 bg-slate-900 border-slate-700"
                     />
-                    <label htmlFor="filter-missing" className="text-sm text-slate-300">All Missing Required Fields</label>
+                    <label htmlFor="filter-missing" className="text-sm text-slate-300">All Missing Story Points</label>
                   </div>
                 </div>
                 <p className="mt-4 text-xs text-slate-500 flex items-center gap-1.5 bg-slate-900/50 p-2 rounded-lg border border-slate-700/50">
@@ -626,64 +595,6 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ onConfigSaved }) => {
           </div>
         )}
 
-        {activeTab === 'attribution' && (
-          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <section>
-              <div className="flex items-center justify-between mb-6 border-b border-slate-800 pb-4">
-                <div>
-                  <h2 className="text-xl font-semibold text-slate-100 mb-1 flex items-center gap-3">
-                    <ClipboardList className="text-indigo-400" size={24} />
-                    Classification Rules
-                  </h2>
-                  <p className="text-sm text-slate-400 leading-relaxed max-w-2xl">
-                    Define logic to automatically group tickets into Business Units and Work Streams based on their JIRA attributes (Labels, Components, Issue Type, etc).
-                  </p>
-                </div>
-                <div className="px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-medium flex items-center gap-2">
-                  <Check size={14} />
-                  Evaluated Top-to-Bottom
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-10 items-start">
-                <div className="bg-slate-800/30 rounded-2xl border border-slate-700/50 overflow-hidden shadow-sm">
-                  <div className="bg-slate-800/50 p-4 border-b border-slate-700 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center">
-                      <Target size={18} className="text-indigo-400" />
-                    </div>
-                    <h3 className="font-bold text-slate-100 uppercase tracking-widest text-xs">TPD Business Units</h3>
-                  </div>
-                  <div className="p-6">
-                    <RuleBuilder
-                      rules={config.mapping_rules.tpd_bu}
-                      onChange={(rules) => updateMappingRules({ tpd_bu: rules })}
-                      title="Business Unit"
-                      color="indigo"
-                    />
-                  </div>
-                </div>
-
-                <div className="bg-slate-800/30 rounded-2xl border border-slate-700/50 overflow-hidden shadow-sm">
-                  <div className="bg-slate-800/50 p-4 border-b border-slate-700 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                      <Calculator size={18} className="text-emerald-400" />
-                    </div>
-                    <h3 className="font-bold text-slate-100 uppercase tracking-widest text-xs">Work Streams</h3>
-                  </div>
-                  <div className="p-6">
-                    <RuleBuilder
-                      rules={config.mapping_rules.work_stream}
-                      onChange={(rules) => updateMappingRules({ work_stream: rules })}
-                      title="Work Stream"
-                      color="emerald"
-                    />
-                  </div>
-                </div>
-              </div>
-            </section>
-          </div>
-        )}
-
         {activeTab === 'application' && (
           <div className="max-w-3xl space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <section>
@@ -704,7 +615,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ onConfigSaved }) => {
                       }`}
                     >
                       <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
-                      OpenAI (GPT-4o mini)
+                      OpenAI
                     </button>
                     <button
                       onClick={() => setAiProvider('claude')}
@@ -715,7 +626,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ onConfigSaved }) => {
                       }`}
                     >
                       <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
-                      Claude (Sonnet 3.5)
+                      Claude
                     </button>
                   </div>
                 </div>
@@ -730,6 +641,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ onConfigSaved }) => {
                       placeholder={hasAiKey ? "••••••••••••••••••••••••••••" : `Enter your ${aiProvider === 'openai' ? 'OpenAI' : 'Claude'} API key`}
                       className="w-full pl-4 pr-12 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition-all placeholder:text-slate-600"
                     />
+
                     <button
                       type="button"
                       onClick={() => setShowAiKey(!showAiKey)}
@@ -791,13 +703,6 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ onConfigSaved }) => {
                 </div>
               </div>
             </section>
-          </div>
-        )}
-
-        {loadError && (
-          <div className="mt-8 p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center gap-3 text-rose-400 animate-in fade-in">
-            <X size={20} />
-            <span className="text-sm font-medium">There was an error loading your configuration. Please check your JIRA connection.</span>
           </div>
         )}
       </div>

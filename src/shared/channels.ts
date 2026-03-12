@@ -23,8 +23,6 @@ export const Channels = {
   TICKETS_LIST: 'tickets:list',
   TICKETS_UPDATE: 'tickets:update',
   TICKETS_SYNC_ONE: 'tickets:sync-one',
-  TICKETS_CALC_HOURS: 'tickets:calc-hours',
-  TICKETS_CALC_FIELDS: 'tickets:calc-fields',
 
   // Sync
   SYNC_FULL: 'sync:full',

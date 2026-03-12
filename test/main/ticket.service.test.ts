@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock electron-store — use vi.hoisted to avoid "before initialization" error
+// Mock electron-store — use vi.hoisted to avoid \"before initialization\" error
 const { mockStoreData } = vi.hoisted(() => {
   const mockStoreData: Record<string, unknown> = {
     ticketCache: {},
@@ -21,8 +21,7 @@ vi.mock('electron-store', () => ({
 vi.mock('../../src/main/services/config.service.js', () => ({
   getConfig: vi.fn(() => ({
     project_key: 'TEST',
-    field_ids: { tpd_bu: 'cf_tpd', work_stream: 'cf_ws', story_points: 'cf_sp' },
-    mapping_rules: { tpd_bu: {}, work_stream: {} },
+    field_ids: { story_points: 'cf_sp' },
     ticket_filter: { mode: 'last_x_months', months: 6 },
     sp_to_days: 1,
     tracked_engineers: [],
@@ -30,11 +29,6 @@ vi.mock('../../src/main/services/config.service.js', () => ({
     blocked_statuses: ['Blocked'],
     done_statuses: ['Done', 'Resolved'],
   })),
-}));
-
-// Mock field-engine
-vi.mock('../../src/main/services/field-engine.service.js', () => ({
-  getMappedFields: vi.fn(() => ['B2C', 'Product']),
 }));
 
 // Mock jira service
@@ -56,7 +50,6 @@ import {
   syncTickets,
   syncAllProjects,
   syncSingleTicket,
-  calculateTicketFields,
   getTickets,
   updateTicket,
   getVisibleTicketCount,
@@ -64,14 +57,11 @@ import {
   FINAL_STATUSES,
 } from '../../src/main/services/ticket.service.js';
 import * as jira from '../../src/main/services/jira.service.js';
-import { getMappedFields } from '../../src/main/services/field-engine.service.js';
 import { getConfig } from '../../src/main/services/config.service.js';
 
 const mockGetIssues = vi.mocked(jira.getIssues);
 const mockSearchIssues = vi.mocked(jira.searchIssues);
-const mockGetChangelog = vi.mocked(jira.getIssueChangelog);
 const mockUpdateFields = vi.mocked(jira.updateIssueFields);
-const mockGetMapped = vi.mocked(getMappedFields);
 
 function makeIssue(key: string, overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -95,7 +85,6 @@ function makeIssue(key: string, overrides: Record<string, unknown> = {}): Record
 describe('ticket.service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetMapped.mockReturnValue(['B2C', 'Product']);
   });
 
   describe('FINAL_STATUSES', () => {
@@ -118,28 +107,6 @@ describe('ticket.service', () => {
       expect(t!.assignee).toBe('Alice');
     });
 
-    it('uses JIRA custom field values when present', () => {
-      const issue = makeIssue('T-2', {
-        cf_tpd: [{ value: 'B2B' }],
-        cf_ws: { value: 'Operational' },
-      });
-      processIssue(issue);
-      const tickets = getTickets();
-      const t = tickets.find(t => t.key === 'T-2');
-      expect(t!.tpd_bu).toBe('B2B');
-      expect(t!.work_stream).toBe('Operational');
-    });
-
-    it('falls back to computed values when JIRA fields empty', () => {
-      const issue = makeIssue('T-3');
-      processIssue(issue);
-      const tickets = getTickets();
-      const t = tickets.find(t => t.key === 'T-3');
-      expect(t!.tpd_bu).toBe('B2C');
-      expect(t!.work_stream).toBe('Product');
-      expect(t!.has_computed_values).toBe(true);
-    });
-
     it('handles missing assignee', () => {
       const issue = makeIssue('T-4', { assignee: null });
       processIssue(issue);
@@ -154,14 +121,6 @@ describe('ticket.service', () => {
       const tickets = getTickets();
       const t = tickets.find(t => t.key === 'T-5');
       expect(t!.story_points).toBe(5);
-    });
-
-    it('handles object-style tpd_bu field', () => {
-      const issue = makeIssue('T-6', { cf_tpd: { value: 'B2B' } });
-      processIssue(issue);
-      const tickets = getTickets();
-      const t = tickets.find(t => t.key === 'T-6');
-      expect(t!.tpd_bu).toBe('B2B');
     });
 
     it('handles missing fields gracefully', () => {
@@ -187,8 +146,7 @@ describe('ticket.service', () => {
         ...vi.mocked(getConfig)(),
         ticket_filter: { mode: 'missing_fields', months: 6 },
       } as any);
-      mockGetMapped.mockReturnValue([null, null]);
-      processIssue(makeIssue('T-MISSING'));
+      processIssue(makeIssue('T-MISSING', { cf_sp: null }));
       const tickets = getTickets();
       const missing = tickets.find(t => t.key === 'T-MISSING');
       expect(missing).toBeDefined();
@@ -243,45 +201,17 @@ describe('ticket.service', () => {
     });
   });
 
-  describe('calculateTicketFields', () => {
-    it('returns mapped fields', async () => {
-      mockSearchIssues.mockResolvedValue([makeIssue('T-1')]);
-      mockGetMapped.mockReturnValue(['B2C', 'Product']);
-      const result = await calculateTicketFields('T-1');
-      expect(result).toEqual({ tpd_bu: 'B2C', work_stream: 'Product' });
-    });
-
-    it('throws if ticket not found', async () => {
-      mockSearchIssues.mockResolvedValue([]);
-      await expect(calculateTicketFields('T-X')).rejects.toThrow('not found');
-    });
-  });
-
   describe('updateTicket', () => {
-    it('maps tpd_bu to JIRA field format', async () => {
-      processIssue(makeIssue('T-UPD'));
-      mockUpdateFields.mockResolvedValue();
-      await updateTicket('T-UPD', { tpd_bu: 'B2B' });
-      expect(mockUpdateFields).toHaveBeenCalledWith('T-UPD', { cf_tpd: [{ value: 'B2B' }] });
-    });
-
-    it('maps work_stream to JIRA field format', async () => {
-      processIssue(makeIssue('T-UPD3'));
-      mockUpdateFields.mockResolvedValue();
-      await updateTicket('T-UPD3', { work_stream: 'Ops' });
-      expect(mockUpdateFields).toHaveBeenCalledWith('T-UPD3', { cf_ws: { value: 'Ops' } });
-    });
-
-    it('clears tpd_bu with empty array', async () => {
-      processIssue(makeIssue('T-UPD4'));
-      mockUpdateFields.mockResolvedValue();
-      await updateTicket('T-UPD4', { tpd_bu: null });
-      expect(mockUpdateFields).toHaveBeenCalledWith('T-UPD4', { cf_tpd: [] });
+    it('updates ticket in local cache', async () => {
+      processIssue(makeIssue('TEST-UPD'), true, 'TEST');
+      await updateTicket('TEST-UPD', { summary: 'New Summary' });
+      const tickets = getTickets('TEST');
+      const t = tickets.find(t => t.key === 'TEST-UPD');
+      expect(t!.summary).toBe('New Summary');
     });
 
     it('returns null for unknown ticket', async () => {
-      mockUpdateFields.mockResolvedValue();
-      const result = await updateTicket('T-UNKNOWN', { tpd_bu: 'B2C' });
+      const result = await updateTicket('T-UNKNOWN', { summary: 'New Summary' });
       expect(result).toBeNull();
     });
   });
@@ -298,7 +228,7 @@ describe('ticket.service', () => {
       processIssue(makeIssue('T-R1'));
       processIssue(makeIssue('T-R2'));
       reprocessCache();
-      expect(mockGetMapped).toHaveBeenCalled();
+      expect(true).toBe(true); // Did not throw
     });
   });
 

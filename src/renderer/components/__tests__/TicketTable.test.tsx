@@ -8,11 +8,10 @@ vi.mock('react-hot-toast', () => ({
 vi.mock('../../api', () => ({
   updateTicket: vi.fn().mockResolvedValue({ data: {} }),
   syncOneTicket: vi.fn().mockResolvedValue({ data: {} }),
-  calcTicketFields: vi.fn().mockResolvedValue({ data: { tpd_bu: 'B2C', work_stream: 'Product' } }),
 }));
 
 import TicketTable from '../TicketTable';
-import { updateTicket, syncOneTicket, calcTicketFields } from '../../api';
+import { updateTicket, syncOneTicket } from '../../api';
 import toast from 'react-hot-toast';
 
 const makeTicket = (overrides: any = {}) => ({
@@ -20,13 +19,12 @@ const makeTicket = (overrides: any = {}) => ({
   summary: 'Fix login bug',
   status: 'Done',
   assignee: 'Alice',
-  tpd_bu: 'B2C',
-  work_stream: 'Product',
   has_computed_values: false,
   base_url: 'https://jira.test',
   updated: '2025-01-01T10:00:00Z',
   priority: 'Medium',
   issue_type: 'Story',
+  story_points: 3,
   ...overrides,
 });
 
@@ -34,7 +32,7 @@ describe('TicketTable', () => {
   const defaultProps = {
     tickets: [
       makeTicket(),
-      makeTicket({ key: 'T-2', summary: 'Add feature', assignee: 'Bob', tpd_bu: null, work_stream: null }),
+      makeTicket({ key: 'T-2', summary: 'Add feature', assignee: 'Bob', story_points: null }),
     ],
     loading: false,
     onRefresh: vi.fn(),
@@ -77,19 +75,12 @@ describe('TicketTable', () => {
     expect(screen.getByText('Key')).toBeInTheDocument();
     expect(screen.getByText('Summary')).toBeInTheDocument();
     expect(screen.getByText('Assignee')).toBeInTheDocument();
-    expect(screen.getByText('Business Unit')).toBeInTheDocument();
-    expect(screen.getByText('Work Stream')).toBeInTheDocument();
+    expect(screen.getByText('SP')).toBeInTheDocument();
   });
 
   // --- Filtering ---
-  it('filters tickets by missing tpd_bu', () => {
-    render(<TicketTable {...defaultProps} activeFilter="tpd_bu" />);
-    expect(screen.getByText('T-2')).toBeInTheDocument();
-    expect(screen.queryByText('Fix login bug')).not.toBeInTheDocument();
-  });
-
-  it('filters tickets by missing work_stream', () => {
-    render(<TicketTable {...defaultProps} activeFilter="work_stream" />);
+  it('filters tickets by missing story_points', () => {
+    render(<TicketTable {...defaultProps} activeFilter="story_points" />);
     expect(screen.getByText('T-2')).toBeInTheDocument();
     expect(screen.queryByText('Fix login bug')).not.toBeInTheDocument();
   });
@@ -110,17 +101,6 @@ describe('TicketTable', () => {
     fireEvent.click(syncButtons[0]);
     await waitFor(() => {
       expect(syncOneTicket).toHaveBeenCalledWith('T-1');
-    });
-  });
-
-  // --- Calculate fields ---
-  it('calculates fields for a ticket', async () => {
-    render(<TicketTable {...defaultProps} />);
-    const calcButtons = screen.getAllByTitle('Run inference rules');
-    expect(calcButtons.length).toBeGreaterThan(0);
-    fireEvent.click(calcButtons[0]);
-    await waitFor(() => {
-      expect(calcTicketFields).toHaveBeenCalledWith('T-1');
     });
   });
 

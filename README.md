@@ -26,8 +26,6 @@ You connect to JIRA. Uplift Forge pulls your tickets, crunches the numbers, and 
 - 🧑‍💻 **IC Personal Dashboard** — private cycle time trend, throughput, time-in-status, rework, scope trajectory, team comparison (opt-in), personal goals, SP accuracy, first-time pass rate, review wait time, focus score
 - 🏛️ **Management Org Dashboard** — cross-project organizational health radar with throughput by project, cycle time comparison, bug escape rate, tech debt ratio, flow efficiency, headcount-normalized throughput, traffic-light KPIs, delivery predictability, work type by project
 - 🏔️ **Epic Tracker** — epic-level progress tracking with auto-computed risk scores and delivery risk analysis
-- 🧠 **Smart Attribution** — rule-based classification of tickets into business units and work streams
-- ✏️ **JIRA Write-back** — edit fields inline and push them straight back to JIRA
 - 🤖 **AI Suggestions** — connect OpenAI or Claude to get persona-aware actionable improvement suggestions
 - 📖 **Explain Button** — every metric has a BookOpen icon that opens a modal explaining the data source, computation formula, filters, and config dependencies. Shows **dynamic computation traces** with real values (ticket counts, filter results, intermediate calculations) when available
 
@@ -70,9 +68,8 @@ That's it. No OAuth dance, no callback URLs, no environment variables. Your cred
 Head to **Settings** and:
 
 1. 🏷️ Set your **JIRA Project Key** (e.g. `ACTIN`)
-2. 📥 Click **Fetch Fields** to load your custom fields and statuses
-3. 🗺️ Map your JIRA custom fields (TPD BU, Work Stream, Story Points)
-4. 📏 Optionally set up mapping rules for auto-classification
+2. 📥 Click **Fetch Fields** to load your statuses and optionally select your Story Points field
+3. 🚦 Classify your statuses into Active, Blocked, and Done categories
 
 Hit save, and you're off to the races! 🏁
 
@@ -84,10 +81,10 @@ On first launch, an **Onboarding Wizard** 🧙‍♂️ guides you through selec
 
 | Persona | What You See |
 |---------|-------------|
-| 👥 **Engineering Manager / VP** | All 6 tabs — cycle time, throughput, contribution, aging WIP, rework, bug ratio, SP accuracy, first-time pass rate, review duration, work type distribution, lead time breakdown, per-engineer individual metrics. Multi-project support. 🌐 |
-| 📋 **Delivery Manager** | Flow Dashboard — CFD, lead time distribution, WIP vs limits, tiered aging WIP, blockers, flow efficiency, throughput stability, Monte Carlo forecast, arrival vs departure, batch size trend, time to first activity, lead time breakdown 🌊 |
-| 🧑‍💻 **Individual Contributor** | Private personal dashboard — cycle time trend, throughput, time-in-status, rework, scope trajectory, team comparison, personal goals, SP accuracy, first-time pass rate, review wait time, focus score 🎯 |
-| 🏛️ **Member of Management** | Organizational Health Radar — cross-project throughput, cycle time by project, bug escape rate, tech debt ratio, flow efficiency, headcount-normalized throughput. Multi-project. 💼 |
+| 👥 **Engineering Manager / VP** | Home, Metrics, Individual, Epics, Settings — cycle time, throughput, contribution, aging WIP, rework, bug ratio, SP accuracy, first-time pass rate, review duration, work type distribution, lead time breakdown, per-engineer individual metrics. Multi-project support. 🌐 |
+| 📋 **Delivery Manager** | Home, Metrics, Epics, Settings — Flow Dashboard (CFD, lead time distribution, WIP vs limits, tiered aging WIP, blockers, flow efficiency, throughput stability, Monte Carlo forecast, arrival vs departure, batch size trend, time to first activity, lead time breakdown) 🌊 |
+| 🧑‍💻 **Individual Contributor** | Home, Individual, Settings — Private personal dashboard (cycle time trend, throughput, time-in-status, rework, scope trajectory, team comparison, personal goals, SP accuracy, first-time pass rate, review wait time, focus score) 🎯 |
+| 🏛️ **Member of Management** | Home, Metrics, Epics, Settings — Organizational Health Radar (cross-project throughput, cycle time by project, bug escape rate, tech debt ratio, flow efficiency, headcount-normalized throughput). Multi-project. 💼 |
 
 Each persona sees **genuinely different metrics** backed by a shared Timeline Engine that computes status periods, cycle/lead time, rework, and flow efficiency from JIRA changelogs. 🔧
 
@@ -102,13 +99,6 @@ Each persona sees **genuinely different metrics** backed by a shared Timeline En
 ### 🏠 Home
 
 A persona-aware welcome screen with a getting-started guide. Shows different greetings based on your role. 👋
-
-### 📊 Engineering Attribution
-
-The workhorse 💪. A sortable, filterable table of all your resolved tickets.
-
-- 🏢 **TPD BU & Work Stream**: Auto-classify using mapping rules, or edit inline
-- 💾 **Save to JIRA**: Push changes back with one click
 
 ### 👥 Team Metrics (EM: Team Dashboard)
 

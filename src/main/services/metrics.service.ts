@@ -8,20 +8,6 @@ import type { MetricsSummary, BreakdownEntry, MonthlyTrendEntry, TeamMetricsResp
  * Legacy service used by some components.
  */
 
-const PERIOD_CONFIGS: Record<string, { visible: string[]; hidden?: string[] }> = {
-  team: {
-    visible: ['total_tickets', 'total_story_points', 'estimation_accuracy', 'avg_cycle_time_hours', 'bug_count', 'bug_ratio'],
-  },
-  individual: {
-    visible: ['total_tickets', 'total_story_points', 'estimation_accuracy', 'complexity_score', 'focus_ratio'],
-    hidden: ['bug_count', 'bug_ratio', 'avg_cycle_time_hours'],
-  },
-  org: {
-    visible: ['total_tickets', 'total_story_points', 'avg_cycle_time_hours', 'bug_count'],
-    hidden: ['estimation_accuracy', 'bug_ratio'],
-  },
-};
-
 /**
  * Filter tickets by resolution date period (last X weeks).
  */
@@ -50,10 +36,6 @@ export function getTeamMetrics(period = 'all', projectKey?: string): TeamMetrics
   return {
     summary: computeSummary(currentTickets, currentTimelines),
     prev_summary: computeSummary(prevTickets, prevTimelines),
-    by_business_unit: computeBreakdown(currentTickets, 'tpd_bu'),
-    prev_by_business_unit: computeBreakdown(prevTickets, 'tpd_bu'),
-    by_work_stream: computeBreakdown(currentTickets, 'work_stream'),
-    prev_by_work_stream: computeBreakdown(prevTickets, 'work_stream'),
     monthly_trend: computeMonthlyTrend(currentTickets),
     issue_type_breakdown: computeBreakdown(currentTickets, 'issue_type'),
     prev_issue_type_breakdown: computeBreakdown(prevTickets, 'issue_type'),

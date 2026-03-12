@@ -1,6 +1,8 @@
 import { processIssue, persistCaches, clearAllCaches } from './ticket.service.js';
-import { updateConfig } from './config.service.js';
-import { saveCredentials, emitAuthStateChanged } from '../auth/token-store.js';
+import { updateConfig, resetConfig } from './config.service.js';
+import { saveCredentials, clearCredentials, emitAuthStateChanged } from '../auth/token-store.js';
+import { invalidateTimelineCache } from './timeline.service.js';
+import { deleteAiConfig } from '../auth/ai-key-store.js';
 
 const DEMO_PROJECTS = ['APP', 'WEB'];
 const ENGINEERS = [
@@ -91,8 +93,12 @@ function generateHistory(createdDate: Date, isDone: boolean, hasRework: boolean,
 export async function setupDemoMode() {
   console.log('[Demo] Initializing demo mode...');
   
-  // 1. Wipe existing state
+  // 1. Wipe existing state (full reset)
+  clearCredentials();
+  resetConfig();
   clearAllCaches();
+  invalidateTimelineCache();
+  deleteAiConfig();
   
   // 2. Set mock credentials
   saveCredentials('https://demo.atlassian.net', 'demo@example.com', 'demo-token');
@@ -102,14 +108,10 @@ export async function setupDemoMode() {
   updateConfig({
     project_key: 'APP',
     projects: [
-      { project_key: 'APP', project_name: 'Mobile App', field_ids: { tpd_bu: 'customfield_100', work_stream: 'customfield_101', story_points: 'customfield_sp' }, mapping_rules: { tpd_bu: { 'B2C': [[{ field: 'labels', operator: 'contains', value: 'B2C' }]] }, work_stream: { 'Product': [[{ field: 'issue_type', operator: 'in', value: 'Story, Task' }]] } } },
-      { project_key: 'WEB', project_name: 'Web Platform', field_ids: { tpd_bu: 'customfield_100', work_stream: 'customfield_101', story_points: 'customfield_sp' }, mapping_rules: { tpd_bu: { 'B2B': [[{ field: 'labels', operator: 'contains', value: 'B2B' }]] }, work_stream: { 'Maintenance': [[{ field: 'issue_type', operator: 'equals', value: 'Bug' }]] } } },
+      { project_key: 'APP', project_name: 'Mobile App', field_ids: { story_points: 'customfield_sp' } },
+      { project_key: 'WEB', project_name: 'Web Platform', field_ids: { story_points: 'customfield_sp' } },
     ],
-    field_ids: { tpd_bu: 'customfield_100', work_stream: 'customfield_101', story_points: 'customfield_sp' },
-    mapping_rules: {
-      tpd_bu: { 'B2C': [[{ field: 'labels', operator: 'contains', value: 'B2C' }]], 'B2B': [[{ field: 'labels', operator: 'contains', value: 'B2B' }]] },
-      work_stream: { 'Product': [[{ field: 'issue_type', operator: 'in', value: 'Story, Task' }]], 'Maintenance': [[{ field: 'issue_type', operator: 'equals', value: 'Bug' }]] }
-    },
+    field_ids: { story_points: 'customfield_sp' },
     active_statuses: ['In Progress', 'Code Review', 'QA'],
     blocked_statuses: ['Blocked'],
     done_statuses: ['Done', 'Resolved', 'Closed'],

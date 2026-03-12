@@ -11,19 +11,18 @@ import {
   ChevronUp,
   Loader2,
   AlertCircle,
-  Calculator,
   User,
   Zap,
   Tag,
   Clock,
   History,
   Info,
-  BarChart2
+  BarChart2,
+  X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { updateTicket, syncOneTicket, calcTicketFields } from '../api';
-import type { ProcessedTicket, MappingRules } from '../../shared/types';
-import ModalDialog from './ModalDialog';
+import { updateTicket, syncOneTicket } from '../api';
+import type { ProcessedTicket } from '../../shared/types';
 
 interface TicketTableProps {
   tickets: ProcessedTicket[];
@@ -32,24 +31,10 @@ interface TicketTableProps {
   activeFilter: string | null;
 }
 
-const COLUMN_LABELS: Record<string, string> = {
-  key: 'Key',
-  summary: 'Summary',
-  assignee: 'Assignee',
-  status: 'Status',
-  tpd_bu: 'Business Unit',
-  work_stream: 'Work Stream',
-  story_points: 'SP',
-};
-
 const TicketTable: React.FC<TicketTableProps> = ({ tickets, loading, onRefresh, activeFilter }) => {
   const [searchTerm, setSearchSetTerm] = useState('');
   const [sortField, setSortField] = useState<keyof ProcessedTicket>('updated');
   const [sortOrder, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  const [editingKey, setEditingKey] = useState<string | null>(null);
-  const [pendingChanges, setPendingChanges] = useState<Record<string, Partial<ProcessedTicket>>>({});
-  const [savingKeys, setSavingKeys] = useState<Set<string>>(new Set());
-  const [calculatingKeys, setCalculatingKeys] = useState<Set<string>>(new Set());
   const [missingFilter, setMissingFilter] = useState<string | null>(activeFilter);
 
   useEffect(() => {
@@ -74,8 +59,6 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, loading, onRefresh, 
       
       if (!matchesSearch) return false;
 
-      if (missingFilter === 'tpd_bu') return !t.tpd_bu;
-      if (missingFilter === 'work_stream') return !t.work_stream;
       if (missingFilter === 'story_points') return t.story_points == null;
       
       return true;
@@ -90,103 +73,23 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, loading, onRefresh, 
     });
   }, [tickets, searchTerm, sortField, sortOrder, missingFilter]);
 
-  const handleFieldChange = (key: string, field: string, value: any) => {
-    setPendingChanges(prev => ({
-      ...prev,
-      [key]: { ...prev[key], [field]: value }
-    }));
-  };
-
-  const handleSave = async (key: string) => {
-    const changes = pendingChanges[key];
-    if (!changes) {
-      setEditingKey(null);
-      return;
-    }
-
-    setSavingKeys(prev => new Set(prev).add(key));
-    try {
-      const ticket = tickets.find(t => t.key === key);
-      const merged = { ...ticket, ...changes };
-      
-      // Map to JIRA payload
-      const payload: any = {};
-      if ('tpd_bu' in changes) payload.tpd_bu = changes.tpd_bu;
-      if ('work_stream' in changes) payload.work_stream = changes.work_stream;
-      
-      await updateTicket(key, payload);
-      
-      // Update local state by refreshing
-      onRefresh();
-      
-      const nextChanges = { ...pendingChanges };
-      delete nextChanges[key];
-      setPendingChanges(nextChanges);
-      setEditingKey(null);
-      toast.success(`${key} updated`);
-    } catch (err) {
-      console.error('Failed to save ticket', err);
-      toast.error(`Failed to update ${key}`);
-    } finally {
-      setSavingKeys(prev => {
-        const next = new Set(prev);
-        next.delete(key);
-        return next;
-      });
-    }
-  };
-
   const handleSyncOne = async (key: string) => {
-    setCalculatingKeys(prev => new Set(prev).add(key));
     try {
       await syncOneTicket(key);
       onRefresh();
       toast.success(`${key} synced from JIRA`);
     } catch (err) {
       toast.error(`Sync failed for ${key}`);
-    } finally {
-      setCalculatingKeys(prev => {
-        const next = new Set(prev);
-        next.delete(key);
-        return next;
-      });
     }
-  };
-
-  const handleCalcFields = async (key: string) => {
-    setCalculatingKeys(prev => new Set(prev).add(key));
-    try {
-      const res = await calcTicketFields(key);
-      if (res.data.tpd_bu) handleFieldChange(key, 'tpd_bu', res.data.tpd_bu);
-      if (res.data.work_stream) handleFieldChange(key, 'work_stream', res.data.work_stream);
-      toast.success(`Inferred fields for ${key}`);
-    } catch (err) {
-      toast.error(`Calculation failed for ${key}`);
-    } finally {
-      setCalculatingKeys(prev => {
-        const next = new Set(prev);
-        next.delete(key);
-        return next;
-      });
-    }
-  };
-
-  const cancelEdit = (key: string) => {
-    const nextChanges = { ...pendingChanges };
-    delete nextChanges[key];
-    setPendingChanges(nextChanges);
-    setEditingKey(null);
   };
 
   const exportCsv = () => {
-    const headers = ['Key', 'Summary', 'Assignee', 'Status', 'Business Unit', 'Work Stream', 'Story Points'];
+    const headers = ['Key', 'Summary', 'Assignee', 'Status', 'Story Points'];
     const rows = filteredTickets.map(t => [
       t.key,
       `"${t.summary.replace(/"/g, '""')}"`,
       t.assignee,
       t.status,
-      t.tpd_bu || '',
-      t.work_stream || '',
       t.story_points || ''
     ]);
     
@@ -195,7 +98,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, loading, onRefresh, 
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `engineering-attribution-${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `tickets-${new Date().toISOString().split('T')[0]}.csv`);
     link.click();
   };
 
@@ -227,16 +130,10 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, loading, onRefresh, 
               All
             </button>
             <button 
-              onClick={() => setMissingFilter('tpd_bu')}
-              className={`px-3 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${missingFilter === 'tpd_bu' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+              onClick={() => setMissingFilter('story_points')}
+              className={`px-3 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${missingFilter === 'story_points' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
             >
-              Missing BU
-            </button>
-            <button 
-              onClick={() => setMissingFilter('work_stream')}
-              className={`px-3 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${missingFilter === 'work_stream' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
-            >
-              Missing WS
+              Missing SP
             </button>
           </div>
 
@@ -269,19 +166,13 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, loading, onRefresh, 
                 <th onClick={() => handleSort('key')} className="w-32 px-4 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest cursor-pointer group hover:text-indigo-400 transition-colors">
                   <div className="flex items-center gap-2">Key {renderSortIcon('key')}</div>
                 </th>
-                <th onClick={() => handleSort('summary')} className="w-96 px-4 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest cursor-pointer group hover:text-indigo-400 transition-colors">
+                <th onClick={() => handleSort('summary')} className="w-full px-4 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest cursor-pointer group hover:text-indigo-400 transition-colors">
                   <div className="flex items-center gap-2">Summary {renderSortIcon('summary')}</div>
                 </th>
                 <th onClick={() => handleSort('assignee')} className="w-48 px-4 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest cursor-pointer group hover:text-indigo-400 transition-colors">
                   <div className="flex items-center gap-2">Assignee {renderSortIcon('assignee')}</div>
                 </th>
-                <th onClick={() => handleSort('tpd_bu')} className="w-48 px-4 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest cursor-pointer group hover:text-indigo-400 transition-colors">
-                  <div className="flex items-center gap-2">Business Unit {renderSortIcon('tpd_bu')}</div>
-                </th>
-                <th onClick={() => handleSort('work_stream')} className="w-48 px-4 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest cursor-pointer group hover:text-indigo-400 transition-colors">
-                  <div className="flex items-center gap-2">Work Stream {renderSortIcon('work_stream')}</div>
-                </th>
-                <th onClick={() => handleSort('story_points')} className="w-20 px-4 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest cursor-pointer group hover:text-indigo-400 transition-colors text-center">
+                <th onClick={() => handleSort('story_points')} className="w-24 px-4 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest cursor-pointer group hover:text-indigo-400 transition-colors text-center">
                   <div className="flex items-center justify-center gap-2">SP {renderSortIcon('story_points')}</div>
                 </th>
                 <th className="w-24 px-4 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Actions</th>
@@ -290,7 +181,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, loading, onRefresh, 
             <tbody className="divide-y divide-slate-800/50">
               {filteredTickets.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-20 text-center">
+                  <td colSpan={5} className="py-20 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center text-slate-600">
                         <Filter size={32} />
@@ -302,16 +193,10 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, loading, onRefresh, 
                 </tr>
               ) : (
                 filteredTickets.map((ticket) => {
-                  const isEditing = editingKey === ticket.key;
-                  const isSaving = savingKeys.has(ticket.key);
-                  const isCalculating = calculatingKeys.has(ticket.key);
-                  const currentValues = { ...ticket, ...(pendingChanges[ticket.key] || {}) };
-                  const hasChanges = !!pendingChanges[ticket.key];
-
                   return (
                     <tr 
                       key={ticket.key} 
-                      className={`group hover:bg-slate-700/30 transition-colors border-l-2 ${isEditing ? 'bg-indigo-500/5 border-indigo-500' : 'border-transparent'}`}
+                      className="group hover:bg-slate-700/30 transition-colors border-l-2 border-transparent"
                     >
                       <td className="px-4 py-4 align-top">
                         <div className="flex items-center gap-2">
@@ -348,7 +233,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, loading, onRefresh, 
                             <span className="text-indigo-400/70 hover:underline cursor-pointer" onClick={() => window.api.openExternal(`${ticket.base_url}/browse/${ticket.parent_key}`)}>
                               {ticket.parent_key}
                             </span>
-                            <span className="truncate max-w-[200px]">— {ticket.parent_summary}</span>
+                            <span className="truncate max-w-[200px]"> — {ticket.parent_summary}</span>
                           </div>
                         )}
                       </td>
@@ -366,91 +251,20 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, loading, onRefresh, 
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4 align-top">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={currentValues.tpd_bu || ''}
-                            onChange={(e) => handleFieldChange(ticket.key, 'tpd_bu', e.target.value)}
-                            className="w-full px-2 py-1.5 bg-slate-900 border border-slate-600 rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-inner"
-                            placeholder="e.g. B2C"
-                            autoFocus
-                          />
-                        ) : (
-                          <div className={`text-sm ${ticket.tpd_bu ? 'text-slate-300' : 'text-rose-400/70 italic flex items-center gap-1.5'}`}>
-                            {!ticket.tpd_bu && <AlertCircle size={12} />}
-                            {ticket.tpd_bu || 'Unassigned BU'}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-4 align-top">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={currentValues.work_stream || ''}
-                            onChange={(e) => handleFieldChange(ticket.key, 'work_stream', e.target.value)}
-                            className="w-full px-2 py-1.5 bg-slate-900 border border-slate-600 rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-inner"
-                            placeholder="e.g. Product"
-                          />
-                        ) : (
-                          <div className={`text-sm ${ticket.work_stream ? 'text-slate-300' : 'text-rose-400/70 italic flex items-center gap-1.5'}`}>
-                            {!ticket.work_stream && <AlertCircle size={12} />}
-                            {ticket.work_stream || 'Unassigned WS'}
-                          </div>
-                        )}
-                      </td>
                       <td className="px-4 py-4 align-top text-center">
                         <span className={`text-sm font-bold ${ticket.story_points ? 'text-slate-300' : 'text-slate-600'}`}>
                           {ticket.story_points ?? '—'}
                         </span>
                       </td>
                       <td className="px-4 py-4 align-top text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          {isEditing ? (
-                            <>
-                              <button
-                                onClick={() => handleSave(ticket.key)}
-                                disabled={isSaving}
-                                className="p-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white rounded-lg transition-all cursor-pointer shadow-sm"
-                                title="Save changes"
-                              >
-                                {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                              </button>
-                              <button
-                                onClick={() => cancelEdit(ticket.key)}
-                                className="p-1.5 bg-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-all cursor-pointer"
-                                title="Cancel"
-                              >
-                                <X size={14} />
-                              </button>
-                            </>
-                          ) : (
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                              <button
-                                onClick={() => setEditingKey(ticket.key)}
-                                className="p-1.5 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-all cursor-pointer"
-                                title="Edit attribution"
-                              >
-                                <MoreHorizontal size={16} />
-                              </button>
-                              <button
-                                onClick={() => handleCalcFields(ticket.key)}
-                                disabled={isCalculating}
-                                className="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-all cursor-pointer"
-                                title="Run inference rules"
-                              >
-                                {isCalculating ? <Loader2 size={16} className="animate-spin" /> : <Calculator size={16} />}
-                              </button>
-                              <button
-                                onClick={() => handleSyncOne(ticket.key)}
-                                disabled={isCalculating}
-                                className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all cursor-pointer"
-                                title="Re-sync from JIRA"
-                              >
-                                <RefreshCw size={16} />
-                              </button>
-                            </div>
-                          )}
+                        <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                          <button
+                            onClick={() => handleSyncOne(ticket.key)}
+                            className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all cursor-pointer"
+                            title="Re-sync from JIRA"
+                          >
+                            <RefreshCw size={16} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -476,7 +290,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, loading, onRefresh, 
           </div>
           <div className="flex items-center gap-2">
             <Info size={14} />
-            Only tickets in "Done" category are shown for attribution
+            Only resolved tickets are shown
           </div>
         </div>
       </div>

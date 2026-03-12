@@ -13,7 +13,6 @@ export interface ProjectConfig {
   project_key: string;
   project_name?: string;
   field_ids: FieldIds;
-  mapping_rules: MappingRules;
   ticket_filter?: TicketFilter;
 }
 
@@ -33,23 +32,7 @@ export interface EpicSummary {
   childTickets: ProcessedTicket[];
 }
 
-export interface Rule {
-  field: string;
-  operator: 'equals' | 'contains' | 'starts_with' | 'in';
-  value: string;
-}
-
-/** Rule[][] — inner arrays are AND-blocks, outer array OR's them. */
-export type RuleBlocks = Rule[][];
-
-export interface MappingRules {
-  tpd_bu: Record<string, RuleBlocks>;
-  work_stream: Record<string, RuleBlocks>;
-}
-
 export interface FieldIds {
-  tpd_bu: string;
-  work_stream: string;
   story_points?: string;
 }
 
@@ -79,7 +62,6 @@ export interface AgingThresholds {
 export interface AppConfig {
   project_key: string;
   field_ids: FieldIds;
-  mapping_rules: MappingRules;
   ticket_filter: TicketFilter;
   sp_to_days: number;
   tracked_engineers: TrackedEngineer[];
@@ -103,9 +85,6 @@ export interface ProcessedTicket {
   summary: string;
   status: string;
   assignee: string;
-  tpd_bu: string | null;
-  work_stream: string | null;
-  has_computed_values: boolean;
   story_points: number | null;
   issue_type: string;
   priority: string;
@@ -169,10 +148,6 @@ export interface MonthlyTrendEntry {
 export interface TeamMetricsResponse {
   summary: MetricsSummary | Record<string, never>;
   prev_summary: MetricsSummary | Record<string, never>;
-  by_business_unit: Record<string, BreakdownEntry>;
-  prev_by_business_unit: Record<string, BreakdownEntry>;
-  by_work_stream: Record<string, BreakdownEntry>;
-  prev_by_work_stream: Record<string, BreakdownEntry>;
   monthly_trend: MonthlyTrendEntry[];
   issue_type_breakdown: Record<string, BreakdownEntry>;
   prev_issue_type_breakdown: Record<string, BreakdownEntry>;
@@ -316,7 +291,6 @@ export interface EngineerBugRatio {
 
 export interface EmTeamMetricsResponse {
   cycleTime: CycleTimeDistribution;
-  throughputByWorkStream: WorkStreamThroughput[];
   weeklyThroughput: Array<{ week: string; count: number; storyPoints: number }>;
   contributionSpread: ContributionEntry[];
   agingWip: AgingWipEntry[];

@@ -80,15 +80,6 @@ describe('ConfigPanel', () => {
     });
   });
 
-  it('displays Attribution section', async () => {
-    render(<ConfigPanel />);
-    await waitFor(() => screen.getByText('Attribution Rules'));
-    switchTab('Attribution Rules');
-    await waitFor(() => {
-      expect(screen.getByText('Classification Rules')).toBeInTheDocument();
-    });
-  });
-
   it('uppercases project key input', async () => {
     render(<ConfigPanel />);
     await waitFor(() => screen.getByDisplayValue('ACTIN'));

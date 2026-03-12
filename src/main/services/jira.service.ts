@@ -26,6 +26,7 @@ async function jiraFetch(path: string, options: RequestInit = {}, overrideCreds?
       'Authorization': authHeader,
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      'Accept-Language': 'en-US,en;q=0.9',
       ...options.headers,
     },
   });
@@ -162,11 +163,26 @@ export async function searchIssues(jql: string): Promise<unknown[]> {
   const result = await response.json() as { issues?: unknown[] };
   return result.issues ?? [];
 }
-
 /**
  * Get all custom fields.
  */
 export async function getAllFields(): Promise<JiraField[]> {
+  const baseUrl = getBaseUrl();
+  if (baseUrl === 'https://demo.atlassian.net') {
+    return [
+      { id: 'customfield_sp', name: 'Story Points', type: 'number' },
+      { id: 'summary', name: 'Summary', type: 'string' },
+      { id: 'issuetype', name: 'Issue Type', type: 'issuetype' },
+      { id: 'priority', name: 'Priority', type: 'priority' },
+      { id: 'assignee', name: 'Assignee', type: 'user' },
+      { id: 'status', name: 'Status', type: 'status' },
+      { id: 'components', name: 'Components', type: 'array' },
+      { id: 'labels', name: 'Labels', type: 'array' },
+      { id: 'created', name: 'Created', type: 'datetime' },
+      { id: 'resolutiondate', name: 'Resolved', type: 'datetime' },
+    ];
+  }
+
   const response = await jiraFetch('/field');
   const fields = await response.json() as Array<{
     id: string;
@@ -184,18 +200,33 @@ export async function getAllFields(): Promise<JiraField[]> {
  * Get all workflow statuses.
  */
 export async function getAllStatuses(): Promise<JiraStatus[]> {
+  const baseUrl = getBaseUrl();
+  if (baseUrl === 'https://demo.atlassian.net') {
+    return [
+      { id: '1', name: 'To Do' },
+      { id: '2', name: 'In Progress' },
+      { id: '3', name: 'Code Review' },
+      { id: '4', name: 'QA' },
+      { id: '5', name: 'Done' },
+      { id: '6', name: 'Blocked' },
+      { id: '7', name: 'Resolved' },
+      { id: '8', name: 'Closed' },
+    ];
+  }
+
   const response = await jiraFetch('/status');
   const statuses = await response.json() as Array<{ id: string; name: string }>;
   const seen = new Set<string>();
   const result: JiraStatus[] = [];
-  for (const status of statuses) {
-    if (status.name && !seen.has(status.name)) {
-      seen.add(status.name);
-      result.push({ id: status.id, name: status.name });
+
+  for (const s of statuses) {
+    if (!seen.has(s.name)) {
+      seen.add(s.name);
+      result.push({ id: s.id, name: s.name });
     }
   }
-  result.sort((a, b) => a.name.localeCompare(b.name));
-  return result;
+
+  return result.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /**

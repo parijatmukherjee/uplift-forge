@@ -1,4 +1,4 @@
-import { ipcMain, shell } from 'electron';
+import { ipcMain, shell, app } from 'electron';
 import { Channels } from '../../shared/channels.js';
 import { saveCredentials, clearCredentials, isAuthenticated, getEmail, getBaseUrl, emitAuthStateChanged } from '../auth/token-store.js';
 import { getConfig, updateConfig, resetConfig } from '../services/config.service.js';
@@ -61,6 +61,15 @@ export function registerIpcHandlers(): void {
     ticketService.clearAllCaches();
     timelineService.invalidateTimelineCache();
     deleteAiConfig();
+
+    // Force restart to ensure all modules re-initialize with empty state.
+    // We use a small timeout to allow electron-store to finish any pending writes
+    // though clear() is usually synchronous, it's safer.
+    setTimeout(() => {
+      app.relaunch();
+      app.exit(0);
+    }, 500);
+    
     return { status: 'reset' };
   });
 
@@ -70,19 +79,24 @@ export function registerIpcHandlers(): void {
   });
 
   ipcMain.handle(Channels.CONFIG_SAVE, async (_event, payload: Record<string, unknown>) => {
-    const { projectKeyChanged, filterChanged, rulesChanged } = updateConfig({
+    const { projectKeyChanged, filterChanged } = updateConfig({
       project_key: payload.project_key as string | undefined,
       field_ids: payload.field_ids as ReturnType<typeof getConfig>['field_ids'] | undefined,
-      eng_start_status: payload.eng_start_status as string | undefined,
-      eng_end_status: payload.eng_end_status as string | undefined,
-      eng_excluded_statuses: payload.eng_excluded_statuses as string[] | undefined,
       ticket_filter: payload.ticket_filter as ReturnType<typeof getConfig>['ticket_filter'] | undefined,
-      mapping_rules: payload.mapping_rules as ReturnType<typeof getConfig>['mapping_rules'] | undefined,
       sp_to_days: payload.sp_to_days as number | undefined,
       tracked_engineers: payload.tracked_engineers as ReturnType<typeof getConfig>['tracked_engineers'] | undefined,
       persona: payload.persona as ReturnType<typeof getConfig>['persona'] | undefined,
       metric_preferences: payload.metric_preferences as ReturnType<typeof getConfig>['metric_preferences'] | undefined,
       projects: payload.projects as ReturnType<typeof getConfig>['projects'] | undefined,
+      active_statuses: payload.active_statuses as string[] | undefined,
+      blocked_statuses: payload.blocked_statuses as string[] | undefined,
+      done_statuses: payload.done_statuses as string[] | undefined,
+      wip_limit: payload.wip_limit as number | undefined,
+      aging_thresholds: payload.aging_thresholds as ReturnType<typeof getConfig>['aging_thresholds'] | undefined,
+      my_account_id: payload.my_account_id as string | undefined,
+      personal_goals: payload.personal_goals as Record<string, number> | undefined,
+      opt_in_team_comparison: payload.opt_in_team_comparison as boolean | undefined,
+      seniority_field_id: payload.seniority_field_id as string | undefined,
     });
 
     // Check if additional projects were added/changed
@@ -93,10 +107,6 @@ export function registerIpcHandlers(): void {
     if (needsSync || projectsChanged) {
       const syncResults = await ticketService.syncAllProjects();
       totalSynced = Object.values(syncResults).reduce((sum, count) => sum + count, 0);
-    }
-
-    if (rulesChanged && !needsSync && !projectsChanged) {
-      ticketService.reprocessCache();
     }
 
     const ticketCount = (needsSync || projectsChanged) ? totalSynced : ticketService.getVisibleTicketCount();
@@ -133,10 +143,6 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(Channels.TICKETS_SYNC_ONE, async (_event, key: string) => {
     return ticketService.syncSingleTicket(key);
-  });
-
-  ipcMain.handle(Channels.TICKETS_CALC_FIELDS, async (_event, key: string) => {
-    return ticketService.calculateTicketFields(key);
   });
 
   // ----- Sync -----
