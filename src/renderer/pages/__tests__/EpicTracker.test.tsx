@@ -11,10 +11,11 @@ vi.mock('../../api', () => ({
   getAiConfig: vi.fn(),
   getAiSuggestions: vi.fn(),
   syncAllProjects: vi.fn(),
+  getConfig: vi.fn(),
 }));
 
 import EpicTracker from '../EpicTracker';
-import { getEpics, syncEpics, getAiConfig, getAiSuggestions, syncAllProjects } from '../../api';
+import { getEpics, syncEpics, getAiConfig, getAiSuggestions, syncAllProjects, getConfig } from '../../api';
 import toast from 'react-hot-toast';
 import type { EpicSummary } from '../../../shared/types';
 
@@ -57,6 +58,7 @@ describe('EpicTracker', () => {
     (getEpics as ReturnType<typeof vi.fn>).mockResolvedValue({ data: [mockEpic, mockEpicHigh] });
     (syncEpics as ReturnType<typeof vi.fn>).mockResolvedValue({ data: [mockEpic, mockEpicHigh] });
     (getAiConfig as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { provider: 'openai', hasKey: false } });
+    (getConfig as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { persona: 'engineering_manager' } });
   });
 
   it('renders page header', async () => {
@@ -194,29 +196,35 @@ describe('EpicTracker', () => {
     await waitFor(() => expect(getEpics).toHaveBeenCalledTimes(2));
   });
 
-  it('shows AI Risk Analysis button when expanded and AI configured', async () => {
+  it('shows AI suggestion buttons when AI configured', async () => {
     (getAiConfig as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { provider: 'openai', hasKey: true } });
     render(<EpicTracker refreshKey={0} />);
-    await waitFor(() => screen.getByText('Build new feature'));
-    fireEvent.click(screen.getByText('Build new feature'));
     await waitFor(() => {
-      expect(screen.getByText('AI Risk Analysis')).toBeInTheDocument();
+      // Top level summary button
+      expect(screen.getByLabelText('AI suggestions for Delivery Risk Overview')).toBeInTheDocument();
+      // Per-epic button
+      const aiButtons = screen.getAllByTitle('AI Risk Analysis');
+      expect(aiButtons.length).toBe(2);
     });
   });
 
-  it('shows AI suggestions when returned', async () => {
-    (getAiConfig as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { provider: 'openai', hasKey: true } });
-    (getAiSuggestions as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: { suggestions: ['Split blocked tasks', 'Add more reviewers'] },
-    });
-    render(<EpicTracker refreshKey={0} />);
-    await waitFor(() => screen.getByText('Build new feature'));
-    fireEvent.click(screen.getByText('Build new feature'));
-    await waitFor(() => screen.getByText('AI Risk Analysis'));
-    fireEvent.click(screen.getByText('AI Risk Analysis'));
+  it('opens SuggestionPanel when AI button clicked', async () => {
+    (getAiConfig as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { provider: 'openai', hasKey: true, persona: 'engineering_manager' } });
+    // Also mock getConfig which SuggestionPanel calls
+    (vi.mocked(syncAllProjects) as any).mockImplementation(() => {}); // reuse a mock for simplicity or add one
+    
+    // We need to mock getAiSuggestions for the panel
+    (getAiSuggestions as any).mockResolvedValue({ data: { suggestions: ['Test suggestion'] } });
+
+    render(<EpicTracker refreshKey={0} persona="engineering_manager" />);
+    await waitFor(() => screen.getByLabelText('AI suggestions for Delivery Risk Overview'));
+    
+    fireEvent.click(screen.getByLabelText('AI suggestions for Delivery Risk Overview'));
+    
     await waitFor(() => {
-      expect(screen.getByText('Split blocked tasks')).toBeInTheDocument();
-      expect(screen.getByText('Add more reviewers')).toBeInTheDocument();
+      // SuggestionPanel header title for EM
+      expect(screen.getByText('AI Suggestions')).toBeInTheDocument();
+      expect(screen.getByText('Epic Tracker Summary')).toBeInTheDocument();
     });
   });
 });

@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, AlertTriangle, CheckCircle, Clock, ChevronDown, ChevronRight, Sparkles } from 'lucide-react';
+import { RefreshCw, AlertTriangle, CheckCircle, Clock, ChevronDown, ChevronRight, Sparkles, Layers } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getEpics, syncEpics, getAiConfig, getAiSuggestions, syncAllProjects } from '../api';
+import { getEpics, syncEpics, getAiConfig, syncAllProjects } from '../api';
+import { SectionTitle } from '../components/MetricCard';
+import SuggestionPanel from '../components/SuggestionPanel';
 import type { ProjectInfo } from '../App';
-import type { EpicSummary, AiProvider, Persona } from '../../shared/types';
+import type { EpicSummary, AiProvider, Persona, AiSuggestRequest } from '../../shared/types';
 
 const RISK_COLORS = {
   low: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-400', bar: 'bg-emerald-500' },
@@ -26,8 +28,8 @@ const EpicTracker: React.FC<EpicTrackerProps> = ({ refreshKey, project, persona,
   const [expanded, setExpanded] = useState<string | null>(null);
   const [aiConfigured, setAiConfigured] = useState(false);
   const [aiProvider, setAiProvider] = useState<AiProvider>('openai');
-  const [aiLoading, setAiLoading] = useState<string | null>(null);
-  const [aiSuggestions, setAiSuggestions] = useState<Record<string, string[]>>({});
+  const [suggestionOpen, setSuggestionOpen] = useState(false);
+  const [suggestionRequest, setSuggestionRequest] = useState<AiSuggestRequest | null>(null);
 
   const fetchEpics = useCallback(async () => {
     setLoading(true);
@@ -71,32 +73,46 @@ const EpicTracker: React.FC<EpicTrackerProps> = ({ refreshKey, project, persona,
     }).catch(() => {});
   }, []);
 
-  const handleAiSuggest = useCallback(async (epic: EpicSummary) => {
-    if (!aiConfigured) return;
-    setAiLoading(epic.key);
-    try {
-      const res = await getAiSuggestions({
-        metricKey: 'epic_progress',
-        metricLabel: `Epic: ${epic.summary}`,
-        currentValue: epic.progressPct,
-        previousValue: null,
-        trendDirection: null,
-        trendPct: null,
-        helpContent: `Epic ${epic.key}: ${epic.summary}\nProgress: ${Math.round(epic.progressPct * 100)}% (${epic.resolvedTickets}/${epic.totalTickets} tickets)\nRisk: ${epic.riskLevel} (${epic.riskScore})\nRisk factors: ${epic.riskFactors.join('; ')}\nTotal SP: ${epic.totalSP}, Resolved SP: ${epic.resolvedSP}\nAvg Cycle Time: ${epic.avgCycleTime ?? 'N/A'}h`,
-        context: 'team',
-      });
-      const data = res.data as { suggestions: string[]; error?: string };
-      if (data.suggestions.length > 0) {
-        setAiSuggestions(prev => ({ ...prev, [epic.key]: data.suggestions }));
-      } else if (data.error) {
-        toast.error(data.error);
-      }
-    } catch {
-      toast.error('Failed to get AI suggestions');
-    } finally {
-      setAiLoading(null);
+  const handleAiSuggest = useCallback((epic: EpicSummary) => {
+    if (!aiConfigured) {
+      toast.error('Configure AI API Key in Settings first ✨');
+      return;
     }
+    
+    setSuggestionRequest({
+      metricKey: 'epic_progress',
+      metricLabel: `Epic: ${epic.summary}`,
+      currentValue: `${Math.round(epic.progressPct * 100)}%`,
+      previousValue: null,
+      trendDirection: null,
+      trendPct: null,
+      helpContent: `Epic ${epic.key}: ${epic.summary}\nRisk: ${epic.riskLevel} (${epic.riskScore})\nRisk factors: ${epic.riskFactors.join('; ')}\nTickets: ${epic.resolvedTickets}/${epic.totalTickets}, SP: ${epic.resolvedSP}/${epic.totalSP}\nAvg Cycle Time: ${epic.avgCycleTime ?? 'N/A'}h`,
+      context: 'team',
+    });
+    setSuggestionOpen(true);
   }, [aiConfigured]);
+
+  const openSummaryAi = useCallback(() => {
+    if (!aiConfigured) {
+      toast.error('Configure AI API Key in Settings first ✨');
+      return;
+    }
+
+    const highRiskCount = epics.filter(e => e.riskLevel === 'high').length;
+    const totalEpics = epics.length;
+
+    setSuggestionRequest({
+      metricKey: 'epic_tracker_summary',
+      metricLabel: 'Epic Tracker Summary',
+      currentValue: `${highRiskCount} High Risk`,
+      previousValue: null,
+      trendDirection: null,
+      trendPct: null,
+      helpContent: `Analyzing ${totalEpics} epics in total. ${highRiskCount} are currently high risk, ${epics.filter(e => e.riskLevel === 'medium').length} medium risk, and ${epics.filter(e => e.riskLevel === 'low').length} low risk. Risk scoring is based on progress, overdue tickets, blockers, and bug ratios.`,
+      context: 'team',
+    });
+    setSuggestionOpen(true);
+  }, [aiConfigured, epics]);
 
   return (
     <div className="flex flex-col h-full">
@@ -131,9 +147,19 @@ const EpicTracker: React.FC<EpicTrackerProps> = ({ refreshKey, project, persona,
             <p className="text-sm text-slate-500">Sync tickets first. Epics are detected from parent ticket relationships in JIRA.</p>
           </div>
         ) : (
-          <div className="max-w-5xl space-y-4">
+          <div className="max-w-5xl space-y-4 pb-12">
+            {/* Summary header */}
+            <div className="flex items-center justify-between mb-4">
+              <SectionTitle 
+                title="Delivery Risk Overview" 
+                icon={<Layers size={18} className="text-violet-400" />}
+                aiConfigured={aiConfigured}
+                onAiSuggest={openSummaryAi}
+              />
+            </div>
+
             {/* Summary stats */}
-            <div className="grid grid-cols-4 gap-3 mb-6">
+            <div className="grid grid-cols-4 gap-3 mb-8">
               <StatCard label="Total Epics" value={epics.length} />
               <StatCard label="High Risk" value={epics.filter(e => e.riskLevel === 'high').length} color="text-rose-400" />
               <StatCard label="Medium Risk" value={epics.filter(e => e.riskLevel === 'medium').length} color="text-amber-400" />
@@ -144,47 +170,60 @@ const EpicTracker: React.FC<EpicTrackerProps> = ({ refreshKey, project, persona,
             {epics.map(epic => {
               const isExpanded = expanded === epic.key;
               const colors = RISK_COLORS[epic.riskLevel];
-              const suggestions = aiSuggestions[epic.key];
 
               return (
-                <div key={epic.key} className={`rounded-xl border ${colors.border} ${colors.bg} overflow-hidden transition-all`}>
+                <div key={epic.key} className={`rounded-xl border ${colors.border} ${colors.bg} overflow-hidden transition-all group relative`}>
                   {/* Epic header */}
-                  <button
-                    onClick={() => setExpanded(isExpanded ? null : epic.key)}
-                    className="w-full px-5 py-4 flex items-center gap-4 hover:bg-white/5 transition-colors text-left"
-                  >
-                    {isExpanded ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />}
+                  <div className="w-full flex items-center pr-4">
+                    <button
+                      onClick={() => setExpanded(isExpanded ? null : epic.key)}
+                      className="flex-1 px-5 py-4 flex items-center gap-4 hover:bg-white/5 transition-colors text-left min-w-0"
+                    >
+                      {isExpanded ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />}
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-mono text-slate-500">{epic.key}</span>
-                        {isMultiProject && epic.childTickets[0]?.project_key && (
-                          <span className="px-1.5 py-0.5 bg-slate-700/60 text-slate-400 rounded text-[10px] font-mono">
-                            {epic.childTickets[0].project_key}
-                          </span>
-                        )}
-                        <RiskBadge level={epic.riskLevel} score={epic.riskScore} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-mono text-slate-500">{epic.key}</span>
+                          {isMultiProject && epic.childTickets[0]?.project_key && (
+                            <span className="px-1.5 py-0.5 bg-slate-700/60 text-slate-400 rounded text-[10px] font-mono">
+                              {epic.childTickets[0].project_key}
+                            </span>
+                          )}
+                          <RiskBadge level={epic.riskLevel} score={epic.riskScore} />
+                        </div>
+                        <span className="text-sm font-semibold text-slate-200 block truncate">{epic.summary}</span>
                       </div>
-                      <span className="text-sm font-semibold text-slate-200 block truncate">{epic.summary}</span>
-                    </div>
 
-                    {/* Progress bar */}
-                    <div className="w-48 flex-shrink-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] text-slate-500">{epic.resolvedTickets}/{epic.totalTickets} tickets</span>
-                        <span className="text-xs font-semibold text-slate-300">{Math.round(epic.progressPct * 100)}%</span>
+                      {/* Progress bar */}
+                      <div className="w-48 flex-shrink-0 hidden md:block">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] text-slate-500">{epic.resolvedTickets}/{epic.totalTickets} tickets</span>
+                          <span className="text-xs font-semibold text-slate-300">{Math.round(epic.progressPct * 100)}%</span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-700/50 rounded-full overflow-hidden">
+                          <div className={`h-full ${colors.bar} rounded-full transition-all`} style={{ width: `${Math.round(epic.progressPct * 100)}%` }} />
+                        </div>
                       </div>
-                      <div className="w-full h-2 bg-slate-700/50 rounded-full overflow-hidden">
-                        <div className={`h-full ${colors.bar} rounded-full transition-all`} style={{ width: `${Math.round(epic.progressPct * 100)}%` }} />
-                      </div>
-                    </div>
 
-                    {/* SP */}
-                    <div className="text-right flex-shrink-0 w-20">
-                      <span className="text-xs text-slate-500">SP</span>
-                      <span className="block text-sm font-semibold text-slate-300 tabular-nums">{epic.resolvedSP}/{epic.totalSP}</span>
-                    </div>
-                  </button>
+                      {/* SP */}
+                      <div className="text-right flex-shrink-0 w-20 hidden sm:block">
+                        <span className="text-xs text-slate-500">SP</span>
+                        <span className="block text-sm font-semibold text-slate-300 tabular-nums">{epic.resolvedSP}/{epic.totalSP}</span>
+                      </div>
+                    </button>
+
+                    {/* Quick AI Suggestion Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAiSuggest(epic);
+                      }}
+                      className="p-2 text-violet-400/40 hover:text-violet-400 transition-colors"
+                      title="AI Risk Analysis"
+                    >
+                      <Sparkles size={16} />
+                    </button>
+                  </div>
 
                   {/* Expanded detail */}
                   {isExpanded && (
@@ -250,37 +289,6 @@ const EpicTracker: React.FC<EpicTrackerProps> = ({ refreshKey, project, persona,
                           </table>
                         </div>
                       </div>
-
-                      {/* AI Suggestions */}
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleAiSuggest(epic)}
-                          disabled={!aiConfigured || aiLoading === epic.key}
-                          className={`inline-flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
-                            aiConfigured
-                              ? 'text-violet-400 border-violet-500/30 bg-violet-500/10 hover:bg-violet-500/20'
-                              : 'text-slate-600 border-slate-700/30 cursor-not-allowed'
-                          }`}
-                          title={aiConfigured ? 'Get AI risk mitigation suggestions' : 'Configure AI in Settings first'}
-                        >
-                          <Sparkles size={12} className={aiLoading === epic.key ? 'animate-pulse' : ''} />
-                          {aiLoading === epic.key ? 'Analyzing...' : 'AI Risk Analysis'}
-                        </button>
-                      </div>
-
-                      {suggestions && suggestions.length > 0 && (
-                        <div className="bg-violet-500/5 border border-violet-500/20 rounded-lg p-4">
-                          <h4 className="text-xs font-semibold text-violet-300 uppercase tracking-wider mb-2">AI Suggestions</h4>
-                          <ul className="space-y-2">
-                            {suggestions.map((s, i) => (
-                              <li key={i} className="flex items-start gap-2 text-xs text-slate-300 leading-relaxed">
-                                <Sparkles size={10} className="text-violet-400 mt-0.5 flex-shrink-0" />
-                                {s}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
@@ -289,6 +297,13 @@ const EpicTracker: React.FC<EpicTrackerProps> = ({ refreshKey, project, persona,
           </div>
         )}
       </div>
+
+      <SuggestionPanel
+        open={suggestionOpen}
+        onClose={() => setSuggestionOpen(false)}
+        request={suggestionRequest}
+        aiProvider={aiProvider}
+      />
     </div>
   );
 };
