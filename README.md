@@ -2,7 +2,7 @@
   <img src="assets/logo.png" width="80" />
 </p>
 
-<h1 align="center">🔥 Uplift Forge</h1>
+<h1 align="center">🔥 Uplift Forge — JIRA Metrics Dashboard <h1 align="center">🔥 Uplift Forge</h1> Engineering Analytics</h1>
 
 <p align="center">
   <em>✨ Your engineering team's performance, forged into something useful.</em>
